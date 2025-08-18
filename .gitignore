@@ -17,6 +17,9 @@
 *.utf8.md
 *.knit.md
 
+# don’t version the rendered site
+_site/
+
 # Large rendered docs (keep only selected HTMLs)
 *.html
 

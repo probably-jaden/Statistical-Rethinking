@@ -5,8 +5,13 @@ format: html
 editor: visual
 ---
 
+
+
 # Welcome
 
-This site showcases my Quarto projects.  
-See the GitHub source [here](https://github.com/probably-jaden/Statistical-Rethinking).
+This site showcases projects from my **Statistical Rethinking** work in R and Quarto.
 
+- 📈 [Linear Regression](ch4_linear_regression.qmd)  
+- 🔀 [Forking Paths](forkingData.qmd)  
+
+Source code is on [GitHub](https://github.com/probably-jaden/Statistical-Rethinking).

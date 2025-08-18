@@ -7,3 +7,11 @@ website:
     left:
       - href: index.qmd
         text: Home
+      - href: ch4_linear_regression.qmd
+        text: Linear Regression
+      - href: forkingData.qmd
+        text: Forking Paths
+format:
+  html:
+    theme: cosmo
+    toc: true
