@@ -71,7 +71,7 @@ ul.task-list li input[type="checkbox"] {
 
 </head>
 
-<body class="nav-fixed fullcontent">
+<body class="nav-fixed">
 
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
@@ -92,6 +92,14 @@ ul.task-list li input[type="checkbox"] {
     <a class="nav-link active" href="./index.html" aria-current="page"> 
 <span class="menu-text">Home</span></a>
   </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./ch4_linear_regression.html"> 
+<span class="menu-text">Linear Regression</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./forkingData.html"> 
+<span class="menu-text">Forking Paths</span></a>
+  </li>  
 </ul>
           </div> <!-- /navcollapse -->
             <div class="quarto-navbar-tools">
@@ -103,7 +111,15 @@ ul.task-list li input[type="checkbox"] {
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
 <!-- margin-sidebar -->
-    
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#welcome" id="toc-welcome" class="nav-link active" data-scroll-target="#welcome">Welcome</a></li>
+  </ul>
+</nav>
+    </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
@@ -134,8 +150,13 @@ ul.task-list li input[type="checkbox"] {
 
 <section id="welcome" class="level1">
 <h1>Welcome</h1>
-<p>This site showcases my Quarto projects.<br>
-See the GitHub source <a href="https://github.com/probably-jaden/Statistical-Rethinking">here</a>.</p>
+<p>This site showcases projects from my <strong>Statistical Rethinking</strong> work in R and Quarto.</p>
+<ul>
+<li>📈 <a href="./ch4_linear_regression.html">Linear Regression</a><br>
+</li>
+<li>🔀 <a href="./forkingData.html">Forking Paths</a></li>
+</ul>
+<p>Source code is on <a href="https://github.com/probably-jaden/Statistical-Rethinking">GitHub</a>.</p>
 
 
 </section>
@@ -233,7 +254,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   }
     var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
     var mailtoRegex = new RegExp(/^mailto:/);
-      var filterRegex = new RegExp('/' + window.location.host + '/');
+      var filterRegex = new RegExp("https:\/\/probably-jaden\.github\.io\/Statistical-Rethinking\/");
     var isInternal = (href) => {
         return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
     }
