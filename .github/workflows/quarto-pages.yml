@@ -18,7 +18,7 @@ jobs:
       - name: Install Quarto
         uses: quarto-dev/quarto-actions/setup@v2
         with:
-          version: '1.4.626' # adjust to the latest Quarto version
+          version: '1.3.456' # adjust to the latest Quarto version
 
       # 3. Render the site
       - name: Render Quarto site
