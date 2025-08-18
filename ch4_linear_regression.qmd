@@ -8,7 +8,7 @@ editor: visual
 
 !khun
 
-```{r}
+```{r load packages and data, echo = FALSE }
 library(rethinking)
 data(Howell1)
 kHeight <- Howell1
@@ -403,7 +403,6 @@ ggplot(data = kHeight,
 ```{r EDA cherry blossoms}
 library(rethinking)
 
-cherry
 
 ggplot(data = cherry, aes(x = year, y = temp))+geom_line()+labs(title = "Cherry Blossom temperature in March)")
   
