@@ -1,0 +1,12 @@
+---
+title: "Statistical Rethinking Homepage"
+author: "Jaden Earl"
+format: html
+editor: visual
+---
+
+# Welcome
+
+This site showcases my Quarto projects.  
+See the GitHub source [here](https://github.com/probably-jaden/Statistical-Rethinking).
+
