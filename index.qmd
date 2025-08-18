@@ -11,7 +11,7 @@ editor: visual
 
 This site showcases projects from my **Statistical Rethinking** work in R and Quarto.
 
-- 📈 [Linear Regression](ch4_linear_regression.qmd)  
+- 📈 [Linear Regression](ch4_linear_regression_polished.qmd)  
 - 🔀 [Forking Paths](forkingData.qmd)  
 
 Source code is on [GitHub](https://github.com/probably-jaden/Statistical-Rethinking).

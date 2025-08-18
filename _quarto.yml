@@ -7,7 +7,7 @@ website:
     left:
       - href: index.qmd
         text: Home
-      - href: ch4_linear_regression.qmd
+      - href: ch4_linear_regression_polished.qmd
         text: Linear Regression
       - href: forkingData.qmd
         text: Forking Paths
