@@ -59,7 +59,7 @@ ggplot(data = kHeight_child, aes(x = weight, y = height, color = as.factor(male)
 ```
 
 ### Plotting the Prior 
-```{r Priors for Kung! height,echo = FALSE, warning = FALSE, message = FALSE}
+```{r Priors for Kung! height, , echo = FALSE, warning = FALSE, message = FALSE}
 
 # mean prior
 ggplot(data = tibble(x = seq(from = 100, to = 250, by = .1)), 
