@@ -8,7 +8,7 @@ editor: visual
 
 !khun
 
-```{r load packages and data, echo = FALSE }
+```{r load packages and data, include = FALSE}
 library(rethinking)
 data(Howell1)
 kHeight <- Howell1
@@ -30,7 +30,7 @@ setwd("~/Documents/Intellectual Fun/statisticalRethinking/statisticalRethinking"
 ```
 
 ## EDA !Kung Height ~ Weight + Gender
-```{r}
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
 kHeight_adult <- kHeight %>%
   filter(age >= 18)
 
@@ -59,7 +59,7 @@ ggplot(data = kHeight_child, aes(x = weight, y = height, color = as.factor(male)
 ```
 
 ### Plotting the Prior 
-```{r}
+```{r Priors for Kung! height,echo = FALSE, warning = FALSE, message = FALSE}
 
 # mean prior
 ggplot(data = tibble(x = seq(from = 100, to = 250, by = .1)), 
