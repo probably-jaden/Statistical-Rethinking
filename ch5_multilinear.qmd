@@ -1,0 +1,463 @@
+---
+title: "Chapter 5 Multi-variable Regression"
+format: html
+editor: visual
+---
+
+# Chapter 5: Multi-Variate Regression, DAG's and Causality
+
+## Overview
+
+claude come up with 3-4 bullet points on what was accomplished in this chapter. 
+
+
+## Motivation
+
+claude come up with a distrilled paragraph argument for why we should care about muli-variate regression. Here's a section of Richard McElreath's text statistical Rethinking
+
+(1) Statistical “control” for confounds. A confound is something that misleads us about a causal influence—there will be a more precise definition in the next chapter. The spurious waffles and divorce correlation is one possible type of confound, where the confound (southernness) makes a variable with no real importance (Waffle House density) appear to be important. But confounds are diverse. They can hide real important variables just as easily as they can produce false ones.
+(2) Multiple causation. A phenomenon may arise from multiple causes. Measurement of each cause is useful, so when we can use the same data to estimate more than one type of influence, we should. Furthermore, when causation is multiple, one cause
+can hide another.
+(3) Interactions. The importance of one variable may depend upon another. For ex-
+ample, plants benefit from both light and water. But in the absence of either, the other is no benefit at all. Such interactions occur very often. Effective inference about one variable will often depend upon consideration of others.
+
+
+```{r setup, include = FALSE}
+library(rethinking)
+data(WaffleDivorce)
+
+detach(package:rethinking, unload = T)
+library(tidyverse)
+library(brms)
+library(ggrepel)
+library(tigris)
+library(bayesplot)
+library(patchwork)
+```
+
+Claude give a quick description of the waffle divorce data set :
+Data for the individual States of the United States, describing number of Waffle House diners and various marriage and demographic facts.
+
+Format
+Location : State name
+Loc : State abbreviation
+Population : 2010 population in millions
+MedianAgeMarriage: 2005-2010 median age at marriage
+Marriage : 2009 marriage rate per 1000 adults
+Marriage.SE : Standard error of rate
+Divorce : 2009 divorce rate per 1000 adults
+Divorce.SE : Standard error of rate
+WaffleHouses : Number of diners
+South : 1 indicates Southern State
+Slaves1860 : Number of slaves in 1860 census
+Population1860 : Population from 1860 census
+PropSlaves1860 : Proportion of total population that were slaves in 1860
+
+
+
+```{r plot waffle house vs divorce}
+
+WaffleDivorce %>%
+  ggplot(aes(x = WaffleHouses/Population, y = Divorce)) +
+  stat_smooth(method = "lm", fullrange = T, linewidth = 1/2,
+              color = "firebrick4", fill = "firebrick", alpha = 1/5) +
+  geom_point(size = 1.5, color = "firebrick4", alpha = 1/2) +
+  geom_text_repel(data = WaffleDivorce %>% filter(Loc %in% c("ME", "OK", "AR", "AL", "GA", "SC", "NJ")),  
+                  aes(label = Loc), 
+                  size = 3, seed = 1042) +  # this makes it reproducible
+  scale_x_continuous("Waffle Houses per million", limits = c(0, 55)) +
+  ylab("Divorce rate") +
+  coord_cartesian(xlim = c(0, 50), ylim = c(5, 15)) +
+  theme_bw() +
+  theme(panel.grid = element_blank())  
+```
+Most likely a spurious correlation, waffles don't cause divorces nor vice versa
+
+## Divorce and Marriage rates
+
+Excerpt from Richard McElreath: "Let’s leave waffles behind, at least for the moment. An example that is easier to understand is the correlation between divorce rate and marriage rate (Figure 5.2). The rate at
+which adults marry is a great predictor of divorce rate, as seen in the left-hand plot in the
+figure. But does marriage cause divorce? In a trivial sense it obviously does: One cannot
+get a divorce without first getting married. But there’s no reason high marriage rate must
+be correlated with divorce."
+
+```{r plot marriage/divorce on US map}
+
+WaffleDivorce_states <- 
+  WaffleDivorce %>% 
+  # standardize these three variables to put them all on the same scale
+  mutate(Divorce_z           = (Divorce - mean(Divorce))                     / sd(Divorce),
+         MedianAgeMarriage_z = (MedianAgeMarriage - mean(MedianAgeMarriage)) / sd(MedianAgeMarriage),
+         Marriage_z          = (Marriage - mean(Marriage))                   / sd(Marriage)) %>% 
+  # add in the geographic coordinates
+  right_join(states(class = "sf", cb = TRUE) %>% 
+               # shift and rescale the coordinates for Alaska, Puerto Rico, and Hawaii
+               shift_geometry() %>%
+               # drop Puerto Rico
+               filter(NAME != "Puerto Rico"), 
+             by = c("Location" = "NAME")) %>%
+  # convert to the long format for faceting
+  pivot_longer(ends_with("_z")) 
+
+WaffleDivorce_states %>% 
+  ggplot() +
+  geom_sf(aes(fill = value, geometry = geometry),
+          size = 0) +
+  scale_fill_gradient(low = "#f8eaea", high = "firebrick4") +
+  coord_sf(xlim = c(-29e5, 21e5),
+           ylim = c(-2e6, 2e6)) +
+  theme_void() +
+  theme(legend.position = "none",
+        strip.text = element_text(margin = margin(0, 0, 0.5, 0))) +
+  facet_wrap(~name) 
+
+
+
+
+```
+
+
+```{r data wrangling}
+WaffleDivorce <- WaffleDivorce %>%
+  mutate(MedianAgeMarriage_s = (MedianAgeMarriage - mean(MedianAgeMarriage)) / sd(MedianAgeMarriage),
+         Marriage_s  = (Marriage - mean(Marriage)) / sd(Marriage))
+```
+
+```{r}
+b5.01 <- 
+  brm(data = WaffleDivorce, 
+      family = gaussian,
+      Divorce ~ 1 + MedianAgeMarriage_s,
+      prior = c(prior(normal(10, 10), class = Intercept),
+                prior(normal(0, 1), class = b),
+                prior(uniform(0, 10), class = sigma, ub = 10)),
+      iter = 2000, warmup = 500, chains = 4, cores = 4,
+      seed = 5, backend = "cmdstanr", silent = 2,
+      file = "fits/b05.01")
+
+
+at <- c(-3, -2, -1, 0, 1, 2, 3)
+
+simModel <- as_tibble(as_draws_df(b5.01)) %>% 
+  mutate(simMarriageAge = seq(from = -3, to = 3.5, length.out = n()),
+         simDivorceEst = Intercept + (b_MedianAgeMarriage_s * simMarriageAge),
+         simDivorce = rnorm(n(), simDivorceEst, sd = sigma))
+```
+
+
+
+```{r prior vs post marriage Age}
+sim_n <- 1e3
+prior_sim <- tibble(simMarriageAge = seq(from = -3, to = 3.5, length.out = sim_n),
+       simDivorceAge = rnorm(sim_n, 
+                             mean = (rnorm(sim_n, 10, 10) + (rnorm(sim_n) * simMarriageAge)), 
+                             sd = runif(sim_n, min = 0, max = 10)))
+
+ymin <- min(simModel$Estimate, WaffleDivorce$Divorce, prior_sim$simDivorceAge)
+ymax <- max(simModel$Estimate, WaffleDivorce$Divorce, prior_sim$simDivorceAge)
+
+
+prior_plot <- ggplot(data = prior_sim, aes(x = simMarriageAge, y = simDivorceAge)) +
+  stat_density_2d(aes(fill = after_stat(ndensity)),
+                  geom = "raster", contour = FALSE) +
+  scale_fill_viridis_c(option = "magma") +
+  geom_point(data = WaffleDivorce,
+             aes(x = MedianAgeMarriage_s, y = Divorce), 
+             shape = 21, color = "white", fill = "black", lwd = 3, alpha = .8)+  
+  labs(y = "Divorce rate per 1000 adults",
+       title = "Divorce Rate ~ Median Marriage Age", subtitle = "Prior")+
+  scale_y_continuous(limits = c(ymin, ymax), expand = c(0, 0)) +
+  theme_minimal()+
+  
+  # here it is!
+  scale_x_continuous("Median Age ",
+                     breaks = at,
+                     labels = round(at * sd(WaffleDivorce$MedianAgeMarriage) + mean(WaffleDivorce$MedianAgeMarriage), 1))
+
+post_plot  <- ggplot() +
+  stat_density_2d(data = simModel, 
+                  aes(x = simMarriageAge, y = simDivorce, fill = after_stat(ndensity)),
+                  geom = "raster", contour = FALSE) +
+  scale_fill_viridis_c(option = "magma") +
+  geom_point(data = WaffleDivorce,
+             aes(x = MedianAgeMarriage_s, y = Divorce), 
+             shape = 21, color = "white", fill = "black", lwd = 3, alpha = .8)+
+  labs(y = "Divorce rate per 1000 adults",
+       subtitle = "Posterior")+
+  scale_y_continuous(limits = c(ymin, ymax), expand = c(0, 0))+
+  theme_minimal()+
+  scale_x_continuous("Median Age ",
+                     breaks = at,
+                     labels = round(at * sd(WaffleDivorce$MedianAgeMarriage) + mean(WaffleDivorce$MedianAgeMarriage), 1))
+
+prior_plot + post_plot + plot_layout(guides = "collect")
+``` 
+
+
+```{r}
+# Find global limits across both datasets
+ymin <- min(c(simModel$simDivorce, simModel$simDivorceEst, WaffleDivorce$Divorce))
+ymax <- max(c(simModel$simDivorce, simModel$simDivorceEst, WaffleDivorce$Divorce))
+
+modelEst_plot <- ggplot() +
+  stat_density_2d(data = simModel, 
+                  aes(x = simMarriageAge, y = simDivorceEst, fill = after_stat(ndensity)),
+                  geom = "raster", contour = FALSE) +
+  scale_fill_viridis_c(option = "magma") +
+  geom_point(data = WaffleDivorce,
+             aes(x = MedianAgeMarriage_s, y = Divorce), 
+             shape = 21, color = "white", fill = "black", lwd = 3, alpha = .8)+
+  labs(y = "Divorce rate per 1000 adults",
+       title = "Divorce Rate ~ Median Marriage Age", subtitle = "Mu estimate")+
+  theme_minimal()+
+  scale_x_continuous("Median Age ",
+                     breaks = at,
+                     labels = round(at * sd(WaffleDivorce$MedianAgeMarriage) + 
+                                      mean(WaffleDivorce$MedianAgeMarriage), 1)) +
+  scale_y_continuous(limits = c(ymin, ymax), expand = c(0, 0))
+
+model_plot <- ggplot() +
+  stat_density_2d(data = simModel, 
+                  aes(x = simMarriageAge, y = simDivorce, fill = after_stat(ndensity)),
+                  geom = "raster", contour = FALSE) +
+  scale_fill_viridis_c(option = "magma") +
+  geom_point(data = WaffleDivorce,
+             aes(x = MedianAgeMarriage_s, y = Divorce), 
+             shape = 21, color = "white", fill = "black", lwd = 3, alpha = .8)+
+  labs(y = "Divorce rate per 1000 adults",  subtitle = "Full Distribution")+
+  theme_minimal()+
+  scale_x_continuous("Median Age ",
+                     breaks = at,
+                     labels = round(at * sd(WaffleDivorce$MedianAgeMarriage) + 
+                                      mean(WaffleDivorce$MedianAgeMarriage), 1)) +
+  scale_y_continuous(limits = c(ymin, ymax), expand = c(0, 0))
+
+modelEst_plot + model_plot + plot_layout(guides = "collect")
+
+
+```
+
+### Divorce Rate vs Marriage Rate
+```{r}
+b5.02 <- 
+  brm(data = WaffleDivorce, 
+      family = gaussian,
+      Divorce ~ 1 + Marriage_s,
+      prior = c(prior(normal(10, 10), class = Intercept),
+                prior(normal(0, 1), class = b),
+                prior(uniform(0, 10), class = sigma, ub = 10)),
+      iter = 2000, warmup = 500, chains = 4, cores = 4,
+      seed = 5, backend = "cmdstanr", silent = 2,
+      file = "fits/b05.02")
+
+
+simModel.02 <- as_tibble(as_draws_df(b5.02)) %>% 
+  mutate(simMarriage = seq(from = -3, to = 3.5, length.out = n()),
+         simDivorceEst = Intercept + (b_Marriage_s * simMarriage),
+         simDivorce = rnorm(n(), simDivorceEst, sd = sigma))
+```
+
+```{r prior vs post marriage rate}
+
+sim_n <- 1e3
+prior_sim <- tibble(simMarriage = seq(from = -3, to = 3.5, length.out = sim_n),
+       simDivorce = rnorm(sim_n, 
+                             mean = (rnorm(sim_n, 10, 10) + (rnorm(sim_n) * simMarriage)), 
+                             sd = runif(sim_n, min = 0, max = 10)))
+
+ymin <- min(simModel.02$Estimate, WaffleDivorce$Divorce, prior_sim$simDivorce)
+ymax <- max(simModel.02$Estimate, WaffleDivorce$Divorce, prior_sim$simDivorce)
+
+
+prior_plot <- ggplot(data = prior_sim, aes(x = simMarriage, y = simDivorce)) +
+  stat_density_2d(aes(fill = after_stat(ndensity)),
+                  geom = "raster", contour = FALSE) +
+  scale_fill_viridis_c(option = "magma") +
+  geom_point(data = WaffleDivorce,
+             aes(x = Marriage_s, y = Divorce), 
+             shape = 21, color = "white", fill = "black", lwd = 3, alpha = .8)+  
+  labs(y = "Divorce rate per 1000 adults",
+       title = "Divorce Rate ~ Marriage Rate", subtitle = "Prior")+
+  scale_y_continuous(limits = c(ymin, ymax), expand = c(0, 0)) +
+  theme_minimal()+
+  
+  # here it is!
+  scale_x_continuous("Marriage rate per 1000 adults",
+                     breaks = at,
+                     labels = round(at * sd(WaffleDivorce$Marriage) + mean(WaffleDivorce$Marriage), 1))
+
+post_plot  <- ggplot() +
+  stat_density_2d(data = simModel.02, 
+                  aes(x = simMarriage, y = simDivorce, fill = after_stat(ndensity)),
+                  geom = "raster", contour = FALSE) +
+  scale_fill_viridis_c(option = "magma") +
+  geom_point(data = WaffleDivorce,
+             aes(x = Marriage_s, y = Divorce), 
+             shape = 21, color = "white", fill = "black", lwd = 3, alpha = .8)+
+  labs(y = "Divorce rate per 1000 adults",
+       subtitle = "Posterior")+
+  scale_y_continuous(limits = c(ymin, ymax), expand = c(0, 0))+
+  theme_minimal()+
+  scale_x_continuous("Marriage rate per 1000 adults",
+                     breaks = at,
+                     labels = round(at * sd(WaffleDivorce$Marriage) + mean(WaffleDivorce$Marriage), 1))
+
+prior_plot + post_plot + plot_layout(guides = "collect")
+``` 
+
+
+```{r}
+# Find global limits across both datasets
+ymin <- min(c(simModel.02$simDivorce, simModel.02$simDivorceEst, WaffleDivorce$Divorce))
+ymax <- max(c(simModel.02$simDivorce, simModel.02$simDivorceEst, WaffleDivorce$Divorce))
+
+modelEst_plot <- ggplot() +
+  stat_density_2d(data = simModel.02, 
+                  aes(x = simMarriage, y = simDivorceEst, fill = after_stat(ndensity)),
+                  geom = "raster", contour = FALSE) +
+  scale_fill_viridis_c(option = "magma") +
+  geom_point(data = WaffleDivorce,
+             aes(x = Marriage_s, y = Divorce), 
+             shape = 21, color = "white", fill = "black", lwd = 3, alpha = .8)+
+  labs(y = "Divorce rate per 1000 adults",
+       title = "Divorce Rate ~ Median Marriage Age", subtitle = "Mu estimate")+
+  theme_minimal()+
+  scale_x_continuous("Marriage rate per 1000 adults",
+                     breaks = at,
+                     labels = round(at * sd(WaffleDivorce$Marriage) + 
+                                      mean(WaffleDivorce$Marriage), 1)) +
+  scale_y_continuous(limits = c(ymin, ymax), expand = c(0, 0))
+
+model_plot <- ggplot() +
+  stat_density_2d(data = simModel.02, 
+                  aes(x = simMarriage, y = simDivorce, fill = after_stat(ndensity)),
+                  geom = "raster", contour = FALSE) +
+  scale_fill_viridis_c(option = "magma") +
+  geom_point(data = WaffleDivorce,
+             aes(x = Marriage_s, y = Divorce), 
+             shape = 21, color = "white", fill = "black", lwd = 3, alpha = .8)+
+  labs(y = "Divorce rate per 1000 adults",  subtitle = "Full Distribution")+
+  theme_minimal()+
+  scale_x_continuous("Marriage rate per 1000 adults",
+                     breaks = at,
+                     labels = round(at * sd(WaffleDivorce$Marriage) + 
+                                      mean(WaffleDivorce$Marriage), 1)) +
+  scale_y_continuous(limits = c(ymin, ymax), expand = c(0, 0))
+
+modelEst_plot + model_plot + plot_layout(guides = "collect")
+
+
+```
+
+
+```{r}
+b5.03 <- brm(data = WaffleDivorce, 
+      family = gaussian,
+      Divorce ~ 1 + Marriage_s + MedianAgeMarriage_s,
+      prior = c(prior(normal(10, 10), class = Intercept),
+                prior(normal(0, 1), class = b),
+                prior(uniform(0, 10), class = sigma, ub = 10)),
+      iter = 2000, warmup = 500, chains = 4, cores = 4,
+      seed = 5, backend = "cmdstanr", silent = 2,
+      file = "fits/b05.03")
+
+summary(b5.03)
+
+simModel.03 <- as_tibble(as_draws_df(b5.03)) %>% 
+  mutate(simMarriageAge = rnorm(n()),
+         simMarriageRate = rnorm(n()),
+         simDivorceEst = Intercept + (b_MedianAgeMarriage_s * simMarriageAge) +  (b_Marriage_s * simMarriageRate),
+         simDivorce = rnorm(n(), simDivorceEst, sd = sigma))
+
+mcmc_plot(b5.03)
+
+deviance_plot <-
+  fitted(b5.03) %>%
+  as_tibble() %>%
+  bind_cols(WaffleDivorce) %>%
+  ggplot(aes(x = Divorce, y = Estimate)) +
+  geom_abline(linetype = 2, color = "grey50", linewidth = 0.5) +
+  geom_point(size = 1.5, color = "firebrick4", alpha = 3/4) +
+  geom_linerange(aes(ymin = Q2.5, ymax = Q97.5),
+                 linewidth = 1/4, color = "firebrick4") +
+  geom_linerange(aes(ymin = Estimate - Est.Error, 
+                     ymax = Estimate + Est.Error),
+                 linewidth = 1/2, color = "firebrick4") +
+  # Note our use of the dot placeholder, here: https://magrittr.tidyverse.org/reference/pipe.html
+  geom_text(data = . %>% filter(Loc %in% c("ID", "UT", "NJ", "ME", "AR", "AL")),
+            aes(label = Loc), 
+            hjust = 0, nudge_x = - 0.65) +
+  labs(x = "Observed divorce", 
+       y = "Predicted divorce",) +
+  theme_bw() +
+  theme(panel.grid = element_blank())
+
+deviance_plot
+
+
+deviance_plot_map <-
+  fitted(b5.03) %>%
+  as_tibble() %>%
+  bind_cols(WaffleDivorce) %>%
+  right_join(states(class = "sf", cb = TRUE) %>% 
+             # shift and rescale the coordinates for Alaska, Puerto Rico, and Hawaii
+             shift_geometry() %>%
+             # drop Puerto Rico
+             filter(NAME != "Puerto Rico"), 
+           by = c("Location" = "NAME")) %>%
+  mutate(deviance =  Divorce -Estimate) %>% 
+  pivot_longer("deviance") %>% 
+  ggplot() +
+  geom_sf(aes(fill = value, geometry = geometry),
+          size = 0) +
+  scale_fill_gradient(low = "#f8eaea", high = "firebrick4") +
+  coord_sf(xlim = c(-29e5, 21e5),
+           ylim = c(-2e6, 2e6)) +
+  theme_void() +
+  theme(legend.position = "none",
+        strip.text = element_text(margin = margin(0, 0, 0.5, 0))) +
+  facet_wrap(~name) 
+
+deviance_plot_map
+
+
+residuals_plot <-
+  residuals(b5.03) %>% 
+  as_tibble() %>% 
+  rename(f_ll = Q2.5,
+         f_ul = Q97.5) %>% 
+  bind_cols(
+    predict(b5.03) %>% 
+      as_tibble() %>% 
+      transmute(p_ll = Q2.5,
+                p_ul = Q97.5),
+    WaffleDivorce
+  ) %>% 
+  # here we put our `predict()` intervals into a deviance metric
+  mutate(p_ll = Divorce - p_ll,
+         p_ul = Divorce - p_ul) %>% 
+  
+  # now plot!
+  ggplot(aes(x = reorder(Loc, Estimate), y = Estimate)) +
+  geom_hline(yintercept = 0, linewidth = 1/2, 
+             color = "firebrick4", alpha = 1/10) +
+  geom_pointrange(aes(ymin = f_ll, ymax = f_ul),
+                  linewidth = 2/5, shape = 20, color = "firebrick4") + 
+  geom_segment(aes(y    = Estimate - Est.Error, 
+                   yend = Estimate + Est.Error,
+                   x    = Loc, 
+                   xend = Loc),
+               linewidth = 1, color = "firebrick4") +
+  geom_segment(aes(y = p_ll, yend = p_ul,
+                   x = Loc,  xend = Loc),
+               linewidth = 3, color = "firebrick4", alpha = 1/10) +
+  labs(x = NULL, y = NULL) +
+  coord_flip(ylim = c(-6, 5)) +
+  theme_bw() +
+  theme(axis.text.y = element_text(hjust = 0),
+        axis.ticks.y = element_blank(),
+        panel.grid = element_blank())
+
+residuals_plot
+```
+

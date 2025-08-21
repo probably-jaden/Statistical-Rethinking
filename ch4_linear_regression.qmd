@@ -142,6 +142,7 @@ ggplot(d_grid) +
   labs(title = "Prior vs Posterior", color = "Distribution") +
   theme_minimal()
 
+
 ```
 
 
@@ -208,6 +209,7 @@ ggplot(b4.2_draws, ) +
   labs(x = expression(mu), y = expression(sigma),
        title = "Posterior Contours of mu and sigma") +
   theme_minimal()
+
 
 
 ```
