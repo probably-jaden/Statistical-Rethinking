@@ -9,7 +9,22 @@ execute:
   cache.lazy: false
 editor: visual
 ---
+```{r setup, include = FALSE}
+library(rethinking)
+data(WaffleDivorce)
+data(milk)
 
+detach(package:rethinking, unload = T)
+library(tidyverse)
+library(brms)
+library(ggrepel)
+library(tigris)
+library(bayesplot)
+library(patchwork)
+library(dagitty)
+library(ggdag)
+library(tidybayes)
+```
 ## Overview
 
 [claude] come up with 3-4 bullet points on what was accomplished in this chapter. 
@@ -26,22 +41,7 @@ can hide another.
 ample, plants benefit from both light and water. But in the absence of either, the other is no benefit at all. Such interactions occur very often. Effective inference about one variable will often depend upon consideration of others.
 
 
-```{r setup, include = FALSE}
-library(rethinking)
-data(WaffleDivorce)
-data(milk)
 
-detach(package:rethinking, unload = T)
-library(tidyverse)
-library(brms)
-library(ggrepel)
-library(tigris)
-library(bayesplot)
-library(patchwork)
-library(dagitty)
-library(ggdag)
-
-```
 
 Claude give a quick description of the waffle divorce data set :
 Data for the individual States of the United States, describing number of Waffle House diners and various marriage and demographic facts.
@@ -81,8 +81,8 @@ WaffleDivorce %>%
 ```
 Most likely a spurious correlation, waffles don't cause divorces nor vice versa
 
-## Unraveling DAGs
-
+## Spurious Correlation
+### Problem Intro
 Excerpt from Richard McElreath: "Let’s leave waffles behind, at least for the moment. An example that is easier to understand is the correlation between divorce rate and marriage rate (Figure 5.2). The rate at
 which adults marry is a great predictor of divorce rate, as seen in the left-hand plot in the
 figure. But does marriage cause divorce? In a trivial sense it obviously does: One cannot
@@ -164,7 +164,7 @@ WaffleDivorce <- WaffleDivorce %>%
 
 $$ \textbf{b5.1} $$
 
-$$ \text{Divorce}_i \sim \text{Intercept} + \beta_1 \times \text{Median Age Marriage}_i $$
+$$ \text{Divorce}_i \sim \text{Intercept} + \beta_1 \text{Median Age Marriage}_i $$
 
 
 ```{r model - median marriage age, include = FALSE}
@@ -321,7 +321,7 @@ The regression of Divorce Rate on Age of Marriage, tells us only that the total 
 
 $$ \textbf{b5.2} $$
 
-$$ \text{Divorce}_i \sim \text{Intercept} + \beta_1 \times \text{Marriage % Rate}_i $$
+$$ \text{Divorce}_i \sim \text{Intercept} + \beta_1 \text{Marriage % Rate}_i $$
 
 
 ```{r marriage % rate model - marriage % rate, include = FALSE}
@@ -481,7 +481,7 @@ prior_plot + post_plot + plot_layout(guides = "collect")
 
 $$ \textbf{b5.3} $$
 
-$$ \text{Divorce}_i \sim \text{Intercept} + \beta_1 \times \text{Marriage % Rate}_i + \beta_2 \times \text{Median Marriage Age}_i $$
+$$ \text{Divorce}_i \sim \text{Intercept} + \beta_1 \text{Marriage % Rate}_i + \beta_2 \text{Median Marriage Age}_i $$
 
 ```{r model - marriage age + marriage rate, include = FALSE}
 b5.3 <- brm(data = WaffleDivorce, 
@@ -503,6 +503,25 @@ simModel.03 <- as_tibble(as_draws_df(b5.3)) %>%
 
 ::: {.panel-tabset}
 
+#### 🎛️ Parameters
+```{r b5.3 params}
+simModel.03 %>% 
+  select(b_Intercept:sigma) %>% 
+  gather() %>% 
+  
+  ggplot(aes(x = value, y = reorder(key, value))) +  # note how we used `reorder()` to arrange the coefficients
+  geom_vline(xintercept = 0, color = "firebrick4", alpha = 1/10) +
+  stat_pointinterval(point_interval = mode_hdi, .width = .95, 
+                     size = 3/4, color = "firebrick4") +
+  labs(title = "Parameter Distributions",
+       x = NULL, y = NULL) +
+  theme_bw() +
+  theme(axis.text.y = element_text(hjust = 0),
+        axis.ticks.y = element_blank(),
+        panel.grid = element_blank(), 
+        panel.grid.major.y = element_line(color = alpha("firebrick4", 1/4), linetype = 3))
+```
+
 #### 📊  Summary
 ```{r summary b5.3}
 
@@ -523,6 +542,228 @@ b5.3 <- brm(data = WaffleDivorce,
 ```
 
 :::
+
+### Diagnosing Multi-linear models
+
+::: {.panel-tabset}
+#### Predictor Residual Plot
+::: {.panel-tabset}
+
+##### Marriage Rate
+```{r Marriage Rate Residuals}
+b5.4 <- 
+  brm(data = WaffleDivorce,
+      family = gaussian,
+      Marriage_s ~ 1 + MedianAgeMarriage_s,
+      prior = c(prior(normal(0, 10), class = Intercept),
+                prior(normal(0, 1), class = b),
+                prior(uniform(0, 10), class = sigma, ub = 10)),
+      iter = 2000, warmup = 500, chains = 4, cores = 4,
+      seed = 5, backend = "cmdstanr", silent = 2,
+      file = "fits/b05.04.2")
+
+fitted_B5.4 <- 
+  fitted(b5.4) %>%
+  as_tibble() %>%
+  bind_cols(WaffleDivorce)
+
+rateFitted <- fitted_B5.4 %>% 
+  ggplot(aes(x = MedianAgeMarriage_s, y = Marriage_s)) +
+  geom_point(size = 2, shape = 1, color = "firebrick4") +
+  geom_segment(aes(xend = MedianAgeMarriage_s, yend = Estimate), 
+               linewidth = 1/4) +
+  geom_line(aes(y = Estimate), 
+            color = "firebrick4") +
+  coord_cartesian(ylim = range(WaffleDivorce$Marriage_s)) +
+  theme_bw() +
+  theme(panel.grid = element_blank()) 
+
+r_b5.4 <- 
+  residuals(b5.4) %>%
+  # to use this in ggplot2, we need to make it a tibble or data frame
+  as_tibble() %>% 
+  bind_cols(WaffleDivorce)
+
+
+# for the annotation at the top
+text <-
+  tibble(Estimate = c(- 0.5, 0.5),
+         Divorce  = 14.1,
+         label    = c("Higher Marriage Rate", "Lower Marriage Rate"))
+
+# plot
+rateResidual <- r_b5.4 %>% 
+  ggplot(aes(x = Estimate, y = Divorce)) +
+  stat_smooth(method = "lm", fullrange = T,
+              color = "firebrick4", fill = "firebrick4", 
+              alpha = 1/5, linewidth = 1/2) +
+  geom_vline(xintercept = 0, linetype = 2, color = "grey50") +
+  geom_point(size = 2, color = "firebrick4", alpha = 2/3) +
+  geom_text(data = text,
+            aes(label = label)) +
+  scale_x_continuous("Marriage rate residuals", limits = c(-2, 2)) +
+  coord_cartesian(xlim = range(r_b5.4$Estimate),
+                  ylim = c(6, 14.1)) +
+  theme_bw() +
+  theme(panel.grid = element_blank())
+
+rateFitted + rateResidual
+```
+
+Little relationship between divorce and marriage rates, once we have accounted for the effect of Median Marriage Age
+
+##### Median Marriage Age 
+```{r Median Age Residuals, include = FALSE}
+b5.4b <- 
+  brm(data = WaffleDivorce, 
+      family = gaussian,
+      MedianAgeMarriage_s ~ 1 + Marriage_s,
+      prior = c(prior(normal(0, 10), class = Intercept),
+                prior(normal(0, 1), class = b),
+                prior(uniform(0, 10), class = sigma, ub = 10)),
+      iter = 2000, warmup = 500, chains = 4, cores = 4,
+      seed = 5, backend = "cmdstanr", silent = 2,
+      file = "fits/b05.04b")
+
+fitted_B5.4b <- 
+  fitted(b5.4b) %>%
+  as_tibble() %>%
+  bind_cols(WaffleDivorce)
+
+AgeFitted <- fitted_B5.4b %>% 
+  ggplot(aes(x = Marriage_s, y = MedianAgeMarriage_s)) +
+  geom_point(size = 2, shape = 1, color = "firebrick4") +
+  geom_segment(aes(xend = Marriage_s, yend = Estimate), 
+               linewidth = 1/4) +
+  geom_line(aes(y = Estimate), 
+            color = "firebrick4") +
+  coord_cartesian(ylim = range(WaffleDivorce$MedianAgeMarriage_s)) +
+  theme_bw() +
+  theme(panel.grid = element_blank()) 
+
+r_b5.4b <- 
+  residuals(b5.4b) %>%
+  # to use this in ggplot2, we need to make it a tibble or data frame
+  as_tibble() %>% 
+  bind_cols(WaffleDivorce)
+
+text <-
+  tibble(Estimate = c(- 0.7, 0.5),
+         Divorce  = 14.1,
+         label    = c("younger", "older"))
+
+# extract the residuals
+AgeResidual <- residuals(b5.4b) %>%
+  as_tibble() %>%
+  bind_cols(WaffleDivorce) %>% 
+  
+  # plot
+  ggplot(aes(x = Estimate, y = Divorce)) +
+  stat_smooth(method = "lm", fullrange = T,
+              color = "firebrick4", fill = "firebrick4", 
+              alpha = 1/5, linewidth = 1/2) +
+  geom_vline(xintercept = 0, linetype = 2, color = "grey50") +
+  geom_point(size = 2, color = "firebrick4", alpha = 2/3) +
+  geom_text(data = text,
+            aes(label = label)) +
+  scale_x_continuous("Age of marriage residuals", limits = c(-2, 3)) +
+  coord_cartesian(xlim = range(r_b5.4b$Estimate),
+                  ylim = c(6, 14.1)) +
+  theme_bw() +
+  theme(panel.grid = element_blank()) 
+
+AgeFitted + AgeResidual
+```
+
+Negative relationship between divorce and marriage age, even after we have accounted for the effect of the Marriage % Rate
+:::
+
+#### Posterior Prediction Plots
+```{r Observed vs Fitted plot 5.3}
+
+observed_vs_fitted_plot <-
+  fitted(b5.3) %>%
+  as_tibble() %>%
+  bind_cols(WaffleDivorce) %>%
+  ggplot(aes(x = Divorce, y = Estimate)) +
+  geom_abline(linetype = 2, color = "grey50", linewidth = 0.5) +
+  geom_point(size = 1.5, color = "firebrick4", alpha = 3/4) +
+  geom_linerange(aes(ymin = Q2.5, ymax = Q97.5),
+                 linewidth = 1/4, color = "firebrick4") +
+  geom_linerange(aes(ymin = Estimate - Est.Error, 
+                     ymax = Estimate + Est.Error),
+                 linewidth = 1/2, color = "firebrick4") +
+  # Note our use of the dot placeholder, here: https://magrittr.tidyverse.org/reference/pipe.html
+  geom_text(data = . %>% filter(Loc %in% c("ID", "UT", "NJ", "ME", "AR", "AL")),
+            aes(label = Loc), 
+            hjust = 0, nudge_x = - 0.65) +
+  labs(x = "Observed divorce", 
+       y = "Predicted divorce",) +
+  theme_bw() +
+  theme(panel.grid = element_blank())
+
+observed_vs_fitted_plot
+
+```
+
+
+#### Causal Counterfactual Plots
+```{r}
+n_size = 300
+
+simMarriages_age <- as_tibble(as_draws_df(b5.4)) %>% 
+  mutate(MedianAgeMarriage_s = seq(from = -3, to = 3.5, length.out = n()),
+         simMarriageRateEst = Intercept + (b_MedianAgeMarriage_s * MedianAgeMarriage_s),
+         Marriage_s = rnorm(n(), simMarriageRateEst, sd = sigma)) %>% 
+  dplyr::select(c(MedianAgeMarriage_s, Marriage_s)) %>% 
+  slice_sample(n = n_size)
+
+simMRatePred <- as_tibble(predict(b5.4, simMarriages_age)) %>% 
+  cbind(simMarriages_age) 
+
+simDRatePred <- as_tibble(predict(b5.3, simMarriages_age)) %>% 
+  cbind(simMarriages_age) 
+
+
+mcf_plot <- ggplot(data = simMRatePred, aes(x = MedianAgeMarriage_s, y = Marriage_s)) +
+  geom_ribbon(aes(ymin = Q2.5, ymax = Q97.5),
+              fill = "firebrick", alpha = .4)+
+  geom_smooth(method = "lm", color = "red4")+
+  scale_x_continuous("Set Median Age of Marriage",
+                     breaks = at,
+                     labels = round(at * sd(WaffleDivorce$MedianAgeMarriage) + 
+                                      mean(WaffleDivorce$MedianAgeMarriage))) +
+  scale_y_continuous("Marriage Rate per 1000",
+                     breaks = at,
+                     labels = round(at * sd(WaffleDivorce$Marriage) + 
+                                      mean(WaffleDivorce$Marriage))) +
+  labs(title = "Marriage Rate if you set Marriage Age")
+
+dcf_plot <- ggplot(data = simDRatePred, aes(x = MedianAgeMarriage_s, y = Estimate)) +
+  geom_ribbon(aes(ymin = Q2.5, ymax = Q97.5),
+              fill = "firebrick", alpha = .4)+
+  geom_smooth(method = "lm", color = "red4")+
+  scale_x_continuous("Set Median Age of Marriage",
+                     breaks = at,
+                     labels = round(at * sd(WaffleDivorce$MedianAgeMarriage) + 
+                                      mean(WaffleDivorce$MedianAgeMarriage))) +
+  labs(y = "Divorce Rate per 1000", title = "Divorce Rate if you set Marriage Age")
+
+mcf_plot + dcf_plot
+  
+
+```
+
+:::
+
+
+"This procedure also brings home the message that regression models measure the remaining association of each predictor with the out- come, after already knowing the other predictors. In computing the predictor residual plots, you had to perform those calculations yourself. In the unified multivariate model, it all hap- pens automatically. Nevertheless, it is useful to keep this fact in mind, because regressions can behave in surprising ways as a result."
+
+
+
+
+
+
 
 ### Solving the DAG
 
@@ -569,34 +810,9 @@ Once we know median age at marriage for a State, there is little or no additiona
 
 ::: {.panel-tabset}
 
-#### Residuals
 
-```{r Deviance plot 5.3}
 
-deviance_plot <-
-  fitted(b5.3) %>%
-  as_tibble() %>%
-  bind_cols(WaffleDivorce) %>%
-  ggplot(aes(x = Divorce, y = Estimate)) +
-  geom_abline(linetype = 2, color = "grey50", linewidth = 0.5) +
-  geom_point(size = 1.5, color = "firebrick4", alpha = 3/4) +
-  geom_linerange(aes(ymin = Q2.5, ymax = Q97.5),
-                 linewidth = 1/4, color = "firebrick4") +
-  geom_linerange(aes(ymin = Estimate - Est.Error, 
-                     ymax = Estimate + Est.Error),
-                 linewidth = 1/2, color = "firebrick4") +
-  # Note our use of the dot placeholder, here: https://magrittr.tidyverse.org/reference/pipe.html
-  geom_text(data = . %>% filter(Loc %in% c("ID", "UT", "NJ", "ME", "AR", "AL")),
-            aes(label = Loc), 
-            hjust = 0, nudge_x = - 0.65) +
-  labs(x = "Observed divorce", 
-       y = "Predicted divorce",) +
-  theme_bw() +
-  theme(panel.grid = element_blank())
 
-deviance_plot
-
-```
 
 #### Residual Map
 
@@ -706,17 +922,10 @@ waffleHouseEffect_plot
 New data set
 Comparative primate milk composition data, from Table 2 of Hinde and Milligan. 2011. Evolutionary Anthropology 20:9-23.
 
-clade: Broad taxonomic group
 
 species: Species name
 
 kcal.per.g: Kilocalories per gram of milk
-
-perc.fat: Percent fat
-
-perc.protein: Percent protein
-
-perc.lactose: Percent lactose
 
 mass: Body mass of mother, in kilograms
 
@@ -729,41 +938,49 @@ milk %>%
   pairs(col = "firebrick4")
 
 milk2 <- milk %>% 
-  filter(!is.na(neocortex.perc) & !is.na(kcal.per.g)) %>% 
+  filter(!is.na(neocortex.perc)) %>% 
   mutate(neocortex.perc_s = (neocortex.perc - mean(neocortex.perc))/sd(neocortex.perc),
-         kcal.per.g_s = (neocortex.perc - mean(neocortex.perc))/sd(neocortex.perc),
+         kcal.per.g_s = (kcal.per.g - mean(kcal.per.g))/sd(kcal.per.g),
          mass_s = (mass - mean(mass))/sd(mass))
+
+
 ```
 
 
-```{r neocortex percent model}
+
+### Neocortex % Effect on Milk Calories
+
+```{r neocortex percent model, include = FALSE}
 milk.01 <- 
   brm(data = milk2, 
       family = gaussian,
-      kcal.per.g ~ 1 + neocortex.perc_s,
-      prior = c(prior(normal(0, 100), class = Intercept),
-                prior(normal(0, 1), class = b),
-                prior(uniform(0, 1), class = sigma, ub = 1)),
+      kcal.per.g_s ~ 1 + neocortex.perc_s,
+      prior = c(prior(normal(0, .2), class = Intercept),
+                prior(normal(0, .5), class = b),
+                prior(exponential(1), class = sigma)),
       iter = 2000, warmup = 500, chains = 4, cores = 4,
       seed = 5, backend = "cmdstanr", silent = 2,
-      file = "fits/milk.01.3")
+      file = "fits/milk.01.6")
+
 
 at <- c(-3, -2, -1, 0, 1, 2, 3)
 
 plot(milk.01)
 
 simMilk <- as_tibble(as_draws_df(milk.01)) %>% 
-  mutate(simNeocortexPerc = seq(from = -3, to = 3.5, length.out = n()),
+  mutate(simNeocortexPerc = seq(from = -3, to = 3, length.out = n()),
          simKcalEst = Intercept + (b_neocortex.perc_s * simNeocortexPerc),
          simKcal = rnorm(n(), simKcalEst, sd = sigma))
 ```
 
+::: {.panel-tabset}
 
-```{r}
+#### 📈 μ vs full distribution
+```{r mu vs full heat plot milk neocortex}
 
 # Find global limits across both datasets
-ymin <- max(c(min(c(simMilk$simKcal, simMilk$simKcalEst, milk2$kcal.per.g)), 0))
-ymax <- max(c(simMilk$simKcal, simMilk$simKcalEst, milk2$kcal.per.g))
+ymin <- min(c(simMilk$simKcal, simMilk$simKcalEst, milk2$kcal.per.g_s))
+ymax <- max(c(simMilk$simKcal, simMilk$simKcalEst, milk2$kcal.per.g_s))
 
 modelEst_plot <- ggplot() +
   stat_density_2d(data = simMilk, 
@@ -771,16 +988,20 @@ modelEst_plot <- ggplot() +
                   geom = "raster", contour = FALSE) +
   scale_fill_viridis_c(option = "magma") +
   geom_point(data = milk2,
-             aes(x = neocortex.perc_s, y = kcal.per.g), 
+             aes(x = neocortex.perc_s, y = kcal.per.g_s), 
              shape = 21, color = "white", fill = "black", lwd = 3, alpha = .8)+
-  labs(y = "",
-       title = "Divorce Rate ~ Median Marriage Age", subtitle = "Mu estimate")+
-  theme_minimal() +
-  scale_x_continuous("% of brain mass that is neocortex",
+  
+  scale_y_continuous("Kilo-Calories Per Gram of Breast Milk",
                      breaks = at,
-                     labels = round(at * sd(milk2$neocortex.perc) +
-                                      mean(milk2$neocortex.perc), 1)) +
-  scale_y_continuous(limits = c(ymin, ymax), expand = c(0, 0))
+                     labels = round(at * sd(milk2$kcal.per.g) + 
+                                      mean(milk2$kcal.per.g), 2), expand = c(0, 0)) +
+  scale_x_continuous("% of Brain that is Neocortex",
+                     breaks = at,
+                     labels = round(at * sd(milk2$neocortex.perc) + 
+                                      mean(milk2$neocortex.perc))) +
+  labs(title = "Milk Calories ~ Neocortex", subtitle = "Mu estimate")+
+  theme_minimal()+
+  guides(fill = "none")
 
 model_plot <- ggplot() +
   stat_density_2d(data = simMilk, 
@@ -788,43 +1009,297 @@ model_plot <- ggplot() +
                   geom = "raster", contour = FALSE) +
   scale_fill_viridis_c(option = "magma") +
   geom_point(data = milk2,
-             aes(x = neocortex.perc_s, y = kcal.per.g), 
+             aes(x = neocortex.perc_s, y = kcal.per.g_s), 
              shape = 21, color = "white", fill = "black", lwd = 3, alpha = .8)+
-  labs(y = "% of brain mass that is neocortex",  subtitle = "Full Distribution")+
-  theme_minimal() +
-  scale_x_continuous("% of brain mass that is neocortex",
+  labs(subtitle = "Full Distribution")+
+  theme_minimal()+
+  scale_x_continuous("% of Brain that is Neocortex",
                      breaks = at,
-                     labels = round(at * sd(milk2$neocortex.perc) +
-                                      mean(milk2$neocortex.perc), 1)) +
-  scale_y_continuous(limits = c(ymin, ymax), expand = c(0, 0))
+                     labels = round(at * sd(milk2$neocortex.perc) + 
+                                      mean(milk2$neocortex.perc))) +
+  scale_y_continuous("Kilo-Calories Per Gram of Breast Milk",
+                     breaks = at,
+                     labels = round(at * sd(milk2$kcal.per.g) + 
+                                      mean(milk2$kcal.per.g), 2), expand = c(0, 0)) +
+  guides(fill = "none")
 
 modelEst_plot + model_plot + plot_layout(guides = "collect")
+
+```
+
+The posterior mean line is weakly positive, but it is highly imprecise. A lot of mildly positive and negative slopes are plausible, given this model and these data.
+
+#### 📊  Summary
+```{r summary milk neocortex model}
+summary(milk.01)
+```
+
+#### ⚙️ Code
+```{r show milk neocortex model, echo = TRUE}
+milk.01 <- 
+  brm(data = milk2, 
+      family = gaussian,
+      kcal.per.g_s ~ 1 + neocortex.perc_s,
+      prior = c(prior(normal(0, .2), class = Intercept),
+                prior(normal(0, .5), class = b),
+                prior(exponential(1), class = sigma)),
+      iter = 2000, warmup = 500, chains = 4, cores = 4,
+      seed = 5, backend = "cmdstanr", silent = 2,
+      file = "fits/milk.01.6")
+```
+
+
+#### 🌌 Prior Vs Posterior
+```{r prior vs post heat plot - milk neocortex model}
+sim_n <- 1e3
+prior_sim <- tibble(simNeocortex = seq(from = -3, to = 3, length.out = sim_n),
+                    simKCal = rnorm(sim_n,
+                                    mean = (rnorm(sim_n, 0, 0.2) + (rnorm(sim_n, 0, 0.5) * simNeocortex)), 
+                                    sd = rexp(sim_n, rate = 1)))
+
+ymin <- min(c(simMilk$simKcal, prior_sim$simKCal, milk2$kcal.per.g_s))
+ymax <- max(c(simMilk$simKcal, prior_sim$simKCal, milk2$kcal.per.g_s))
+
+
+prior_plot <- ggplot(data = prior_sim, aes(x = simNeocortex, y = simKCal)) +
+  stat_density_2d(aes(fill = after_stat(ndensity)),
+                  geom = "raster", contour = FALSE) +
+  scale_fill_viridis_c(option = "magma") +
+  geom_point(data = milk2,
+             aes(x = neocortex.perc_s , y = kcal.per.g_s), 
+             shape = 21, color = "white", fill = "black", lwd = 3, alpha = .8)+  
+  labs(subtitle = "Prior")+
+  scale_x_continuous("% of Brain that is Neocortex",
+                     breaks = at,
+                     labels = round(at * sd(milk2$neocortex.perc) + 
+                                      mean(milk2$neocortex.perc))) +
+  scale_y_continuous("Kilo-Calories Per Gram of Breast Milk",
+                     breaks = seq(from = ymin, to = ymax, length.out = 8),
+                     labels = round(seq(from = ymin, to = ymax, length.out = 8) * sd(milk2$kcal.per.g) + 
+                                      mean(milk2$kcal.per.g), 1), expand = c(0, 0)) +
+  guides(fill = "none")+
+  theme_minimal()+
+  
+  # here it is!
+  scale_x_continuous("Median Age ",
+                     breaks = at,
+                     labels = round(at * sd(milk2$neocortex.perc) + mean(milk2$neocortex.perc), 1))+
+  guides(fill = "none")
+
+post_plot <- ggplot() +
+  stat_density_2d(data = simMilk, 
+                  aes(x = simNeocortexPerc, y = simKcal, fill = after_stat(ndensity)),
+                  geom = "raster", contour = FALSE) +
+  scale_fill_viridis_c(option = "magma") +
+  geom_point(data = milk2,
+             aes(x = neocortex.perc_s, y = kcal.per.g_s),
+             shape = 21, color = "white", fill = "black", lwd = 3, alpha = .8)+
+  labs(subtitle = "Posterior")+
+  theme_minimal()+
+  scale_x_continuous("% of Brain that is Neocortex",
+                     breaks = at,
+                     labels = round(at * sd(milk2$neocortex.perc) + 
+                                      mean(milk2$neocortex.perc))) +
+  scale_y_continuous("Kilo-Calories Per Gram of Breast Milk",
+                     breaks = seq(from = ymin, to = ymax, length.out = 8),
+                     labels = round(seq(from = ymin, to = ymax, length.out = 8) * sd(milk2$kcal.per.g) + 
+                                      mean(milk2$kcal.per.g), 1), expand = c(0, 0)) +
+  guides(fill = "none")
+
+
+
+prior_plot + post_plot + plot_layout(guides = "collect")
+``` 
+
+:::
+
+
+
+### Mass Effect on Milk Calories
+
+Now consider another predictor variable, adult female body mass, mass in the data frame. Let’s use the logarithm of mass, log(mass), as a predictor as well. Why the logarithm of mass instead of the raw mass in kilograms? It is often true that scaling measurements like body mass are related by magnitudes to other variables. Taking the log of a measure trans- lates the measure into magnitudes. So by using the logarithm of body mass here, we’re saying that we suspect that the magnitude of a mother’s body mass is related to milk energy, in a linear fashion.
+
+
+```{r Mass  model, include = FALSE}
+milk2 <- milk2 %>% 
+  mutate(logMass = log(mass),
+         logMass_s = (logMass - mean(logMass))/sd(logMass))
+
+milk.02 <- 
+  brm(data = milk2, 
+      family = gaussian,
+      kcal.per.g_s ~ 1 + logMass_s,
+      prior = c(prior(normal(0, .2), class = Intercept),
+                prior(normal(0, .5), class = b),
+                prior(exponential(1), class = sigma)),
+      iter = 2000, warmup = 500, chains = 4, cores = 4,
+      seed = 5, backend = "cmdstanr", silent = 2,
+      file = "fits/milk.2.0")
+
+
+at <- c(-1.5, -1, 0, 1, 1.5)
+
+simMilkMass <- as_tibble(as_draws_df(milk.02)) %>% 
+  mutate(simLogMass = seq(from = -3, to = 3, length.out = n()),
+         simKcalEst = Intercept + (b_logMass_s * simLogMass),
+         simKcal = rnorm(n(), simKcalEst, sd = sigma))
+
 
 
 ```
 
+::: {.panel-tabset}
 
-### Multivariate Milk
+#### 📈 μ vs full distribution
+```{r mu vs full heat plot milk mass}
 
-```{r}
+# Find global limits across both datasets
+ymin <- min(c(simMilkMass$simKcal, simMilkMass$simKcalEst, milk2$kcal.per.g_s))
+ymax <- max(c(simMilkMass$simKcal, simMilkMass$simKcalEst, milk2$kcal.per.g_s))
+
+modelEst_plot <- ggplot() +
+  stat_density_2d(data = simMilkMass, 
+                  aes(x = simLogMass, y = simKcalEst, fill = after_stat(ndensity)),
+                  geom = "raster", contour = FALSE) +
+  scale_fill_viridis_c(option = "magma") +
+  geom_point(data = milk2,
+             aes(x = logMass_s, y = kcal.per.g_s), 
+             shape = 21, color = "white", fill = "black", lwd = 3, alpha = .8)+
+  
+  scale_y_continuous("Kilo-Calories Per Gram of Breast Milk",
+                     breaks = at,
+                     labels = round(at * sd(milk2$kcal.per.g) + 
+                                      mean(milk2$kcal.per.g), 2), expand = c(0, 0)) +
+  scale_x_continuous("Body Mass of Mother Grams",
+                     breaks = at,
+                     labels = round(exp(at * sd(milk2$logMass) + 
+                                      mean(milk2$logMass))), 1) +
+  labs(title = "Milk Calories ~ Neocortex", subtitle = "Mu estimate")+
+  theme_minimal()+
+  guides(fill = "none")
+
+model_plot <- ggplot() +
+  stat_density_2d(data = simMilkMass, 
+                  aes(x = simLogMass, y = simKcal, fill = after_stat(ndensity)),
+                  geom = "raster", contour = FALSE) +
+  scale_fill_viridis_c(option = "magma") +
+  geom_point(data = milk2,
+             aes(x = logMass_s, y = kcal.per.g_s), 
+             shape = 21, color = "white", fill = "black", lwd = 3, alpha = .8)+
+  labs(subtitle = "Full Distribution")+
+  theme_minimal()+
+  scale_x_continuous("Body Mass of Mother Grams",
+                     breaks = at,
+                     labels = round(exp(at * sd(milk2$logMass) + 
+                                      mean(milk2$logMass))), 1) +
+  scale_y_continuous("Kilo-Calories Per Gram of Breast Milk",
+                     breaks = at,
+                     labels = round(at * sd(milk2$kcal.per.g) + 
+                                      mean(milk2$kcal.per.g), 2), expand = c(0, 0)) +
+  guides(fill = "none")
+
+modelEst_plot + model_plot + plot_layout(guides = "collect")
+
+```
+
+The posterior mean line is moderately negative, but it is highly imprecise.
+
+#### 📊  Summary
+```{r summary milk mass model}
+summary(milk.02)
+```
+
+#### ⚙️ Code
+```{r show milk mass model, echo = TRUE}
 milk.02 <- 
   brm(data = milk2, 
       family = gaussian,
-      kcal.per.g ~ 1 + neocortex.perc_s + mass_s,
-      prior = c(prior(normal(0, 0.2), class = Intercept),
+      kcal.per.g_s ~ 1 + logMass_s,
+      prior = c(prior(normal(0, .2), class = Intercept),
                 prior(normal(0, .5), class = b),
-                prior(uniform(0, 1), class = sigma, ub = 1)),
+                prior(exponential(1), class = sigma)),
       iter = 2000, warmup = 500, chains = 4, cores = 4,
       seed = 5, backend = "cmdstanr", silent = 2,
-      file = "fits/milk.02.1")
+      file = "fits/milk.2.0")
 
-at <- c(-3, -2, -1, 0, 1, 2, 3)
+```
 
-plot(milk.01)
+:::
+### Multivariate Milk
 
-simMilk <- as_tibble(as_draws_df(milk.01)) %>% 
-  mutate(simNeocortexPerc = seq(from = -3, to = 3.5, length.out = n()),
-         simKcalEst = Intercept + (b_neocortex.perc_s * simNeocortexPerc),
-         simKcal = rnorm(n(), simKcalEst, sd = sigma))
+
+
+```{r, include = FALSE}
+milk.3 <- 
+  brm(data = milk2, 
+      family = gaussian,
+      kcal.per.g ~ 1 + neocortex.perc_s + logMass_s,
+      prior = c(prior(normal(0, 0.2), class = Intercept),
+                prior(normal(0, .5), class = b),
+                prior(exponential(1), class = sigma)),
+      iter = 2000, warmup = 500, chains = 4, cores = 4,
+      seed = 5, backend = "cmdstanr", silent = 2,
+      file = "fits/milk.3")
+
+```
+
+
+::: {.panel-tabset}
+
+#### Parameters
+
+```{r}
+plot(milk.3)
+```
+
+#### Counterfactual Plots
+```{r}
+
+nd <- 
+  tibble(neocortex.perc_s =  seq(from = -3, to = 3, length.out = 1e3),
+         logMass_s = mean(milk2$logMass))
+
+p1 <-
+  milk.3 %>%
+  fitted(newdata = nd, 
+         probs = c(.025, .975, .25, .75)) %>%
+  as_tibble() %>%
+  bind_cols(nd) %>% 
+
+  ggplot(aes(x = neocortex.perc_s, y = Estimate)) +
+  geom_ribbon(aes(ymin = Q2.5, ymax = Q97.5),
+              fill = "firebrick", alpha = 1/5) +
+  geom_smooth(aes(ymin = Q25, ymax = Q75),
+              stat = "identity",
+              fill = "firebrick4", color = "firebrick4", alpha = 1/5, linewidth = 1/2) +
+  geom_point(data = milk2, 
+             aes(y = kcal.per.g_s),
+             size = 2, color = "firebrick4") +
+  ylab("kcal.per.g") 
+  # coord_cartesian(xlim = range(milk2$neocortex.perc), 
+  #                 ylim = range(milk2$kcal.per.g))
+```
+
+
+:::
+
+
+```{r}
+dag5.7 <- dagitty( "dag{
+    M -> K <- N
+    M -> N }" )
+coordinates(dag5.7) <- list( x=c(M=0,K=1,N=2) , y=c(M=0.5,K=1,N=0.5) )
+MElist <- equivalentDAGs(dag5.7)
+
+library(rethinking)
+drawdag(MElist)
+
+dag5.8 <- dagitty( "dag{
+    M -> K 
+    M -> N }" )
+coordinates(dag5.8) <- list( x=c(M=0,K=1,N=2) , y=c(M=0.5,K=1,N=0.5) )
+MElist <- equivalentDAGs(dag5.8)
+
+drawdag(MElist)
 ```
 
