@@ -9,10 +9,13 @@ execute:
   cache.lazy: false
 editor: visual
 ---
+
 ```{r setup, include = FALSE}
 library(rethinking)
 data(WaffleDivorce)
 data(milk)
+data(Howell1)
+kungHeight <- Howell1
 
 detach(package:rethinking, unload = T)
 library(tidyverse)
@@ -25,43 +28,22 @@ library(dagitty)
 library(ggdag)
 library(tidybayes)
 ```
+
 ## Overview
 
-[claude] come up with 3-4 bullet points on what was accomplished in this chapter. 
-
+\[claude\] come up with 3-4 bullet points on what was accomplished in this chapter.
 
 ## Motivation
 
-[claude] come up with a distrilled paragraph argument for why we should care about muli-variate regression. Here's a section of Richard McElreath's text statistical Rethinking
+\[claude\] come up with a distrilled paragraph argument for why we should care about muli-variate regression. Here's a section of Richard McElreath's text statistical Rethinking
 
 (1) Statistical “control” for confounds. A confound is something that misleads us about a causal influence—there will be a more precise definition in the next chapter. The spurious waffles and divorce correlation is one possible type of confound, where the confound (southernness) makes a variable with no real importance (Waffle House density) appear to be important. But confounds are diverse. They can hide real important variables just as easily as they can produce false ones.
-(2) Multiple causation. A phenomenon may arise from multiple causes. Measurement of each cause is useful, so when we can use the same data to estimate more than one type of influence, we should. Furthermore, when causation is multiple, one cause
-can hide another.
-(3) Interactions. The importance of one variable may depend upon another. For ex-
-ample, plants benefit from both light and water. But in the absence of either, the other is no benefit at all. Such interactions occur very often. Effective inference about one variable will often depend upon consideration of others.
+(2) Multiple causation. A phenomenon may arise from multiple causes. Measurement of each cause is useful, so when we can use the same data to estimate more than one type of influence, we should. Furthermore, when causation is multiple, one cause can hide another.
+(3) Interactions. The importance of one variable may depend upon another. For ex- ample, plants benefit from both light and water. But in the absence of either, the other is no benefit at all. Such interactions occur very often. Effective inference about one variable will often depend upon consideration of others.
 
+Claude give a quick description of the waffle divorce data set : Data for the individual States of the United States, describing number of Waffle House diners and various marriage and demographic facts.
 
-
-
-Claude give a quick description of the waffle divorce data set :
-Data for the individual States of the United States, describing number of Waffle House diners and various marriage and demographic facts.
-
-Format
-Location : State name
-Loc : State abbreviation
-Population : 2010 population in millions
-MedianAgeMarriage: 2005-2010 median age at marriage
-Marriage : 2009 marriage rate per 1000 adults
-Marriage.SE : Standard error of rate
-Divorce : 2009 divorce rate per 1000 adults
-Divorce.SE : Standard error of rate
-WaffleHouses : Number of diners
-South : 1 indicates Southern State
-Slaves1860 : Number of slaves in 1860 census
-Population1860 : Population from 1860 census
-PropSlaves1860 : Proportion of total population that were slaves in 1860
-
-
+Format Location : State name Loc : State abbreviation Population : 2010 population in millions MedianAgeMarriage: 2005-2010 median age at marriage Marriage : 2009 marriage rate per 1000 adults Marriage.SE : Standard error of rate Divorce : 2009 divorce rate per 1000 adults Divorce.SE : Standard error of rate WaffleHouses : Number of diners South : 1 indicates Southern State Slaves1860 : Number of slaves in 1860 census Population1860 : Population from 1860 census PropSlaves1860 : Proportion of total population that were slaves in 1860
 
 ```{r plot waffle house vs divorce}
 
@@ -79,15 +61,14 @@ WaffleDivorce %>%
   theme_bw() +
   theme(panel.grid = element_blank())  
 ```
+
 Most likely a spurious correlation, waffles don't cause divorces nor vice versa
 
 ## Spurious Correlation
+
 ### Problem Intro
-Excerpt from Richard McElreath: "Let’s leave waffles behind, at least for the moment. An example that is easier to understand is the correlation between divorce rate and marriage rate (Figure 5.2). The rate at
-which adults marry is a great predictor of divorce rate, as seen in the left-hand plot in the
-figure. But does marriage cause divorce? In a trivial sense it obviously does: One cannot
-get a divorce without first getting married. But there’s no reason high marriage rate must
-be correlated with divorce."
+
+Excerpt from Richard McElreath: "Let’s leave waffles behind, at least for the moment. An example that is easier to understand is the correlation between divorce rate and marriage rate (Figure 5.2). The rate at which adults marry is a great predictor of divorce rate, as seen in the left-hand plot in the figure. But does marriage cause divorce? In a trivial sense it obviously does: One cannot get a divorce without first getting married. But there’s no reason high marriage rate must be correlated with divorce."
 
 ```{r plot marriage/divorce on US map}
 WaffleDivorce_states <- 
@@ -112,8 +93,8 @@ WaffleDivorce_states %>%
   facet_wrap(~name) 
 
 ```
-We see that Divorce rate is high in the south and low in the north midwest and mid atlantic. Marriage rate is high in 
 
+We see that Divorce rate is high in the south and low in the north midwest and mid atlantic. Marriage rate is high in
 
 ```{r DAG representations}
 dag_coords <-
@@ -159,13 +140,11 @@ WaffleDivorce <- WaffleDivorce %>%
          Marriage_s  = (Marriage - mean(Marriage)) / sd(Marriage))
 ```
 
-
 ### Median Marriage Age Model
 
 $$ \textbf{b5.1} $$
 
 $$ \text{Divorce}_i \sim \text{Intercept} + \beta_1 \text{Median Age Marriage}_i $$
-
 
 ```{r model - median marriage age, include = FALSE}
 b5.1 <- 
@@ -188,11 +167,9 @@ simModel <- as_tibble(as_draws_df(b5.1)) %>%
 
 ```
 
-
-::: {.panel-tabset}
-
-
+::: panel-tabset
 #### 📈 μ vs full distribution
+
 ```{r mu vs full heat plot median marriage age}
 
 # Find global limits across both datasets
@@ -238,13 +215,15 @@ modelEst_plot + model_plot + plot_layout(guides = "collect")
 
 ```
 
-#### 📊  Summary
+#### 📊 Summary
+
 ```{r summary median marriage age}
 
 summary(b5.1)
 ```
 
 #### ⚙️ Code
+
 ```{r show model, echo = TRUE}
 b5.1 <- 
   brm(data = WaffleDivorce, 
@@ -259,6 +238,7 @@ b5.1 <-
 ```
 
 #### 🌌 Prior Vs Posterior
+
 ```{r prior vs post heat plot - median marriage age}
 
 
@@ -308,21 +288,16 @@ post_plot  <- ggplot() +
   guides(fill = "none")
 
 prior_plot + post_plot + plot_layout(guides = "collect")
-``` 
-
+```
 :::
 
-
 The regression of Divorce Rate on Age of Marriage, tells us only that the total influence of age at marriage is strongly negative with divorce rate.
-
-
 
 ### Marriage Rate
 
 $$ \textbf{b5.2} $$
 
 $$ \text{Divorce}_i \sim \text{Intercept} + \beta_1 \text{Marriage % Rate}_i $$
-
 
 ```{r marriage % rate model - marriage % rate, include = FALSE}
 b5.2 <- 
@@ -343,10 +318,9 @@ simModel.02 <- as_tibble(as_draws_df(b5.2)) %>%
          simDivorce = rnorm(n(), simDivorceEst, sd = sigma))
 ```
 
-::: {.panel-tabset}
-
-
+::: panel-tabset
 #### 📈 μ vs full distribution
+
 ```{r mu -  marriage rate}
 
 
@@ -399,8 +373,8 @@ combined_plot_mRate
 
 ```
 
+#### 📊 Summary
 
-#### 📊  Summary
 ```{r summary b5.2}
 
 
@@ -408,6 +382,7 @@ summary(b5.2)
 ```
 
 #### ⚙️ Code
+
 ```{r show model 5.2, echo = TRUE}
 b5.2  <- 
   brm(data = WaffleDivorce, 
@@ -420,7 +395,6 @@ b5.2  <-
       seed = 5, backend = "cmdstanr", silent = 2,
       file = "fits/b05.02")
 ```
-
 
 #### 🌌 Prior Vs Posterior
 
@@ -473,8 +447,7 @@ post_plot  <- ggplot() +
   guides(fill = "none")
 
 prior_plot + post_plot + plot_layout(guides = "collect")
-``` 
-
+```
 :::
 
 ### Combined Multi-linear model
@@ -501,9 +474,9 @@ simModel.03 <- as_tibble(as_draws_df(b5.3)) %>%
          simDivorce = rnorm(n(), simDivorceEst, sd = sigma))
 ```
 
-::: {.panel-tabset}
-
+::: panel-tabset
 #### 🎛️ Parameters
+
 ```{r b5.3 params}
 simModel.03 %>% 
   select(b_Intercept:sigma) %>% 
@@ -522,13 +495,15 @@ simModel.03 %>%
         panel.grid.major.y = element_line(color = alpha("firebrick4", 1/4), linetype = 3))
 ```
 
-#### 📊  Summary
+#### 📊 Summary
+
 ```{r summary b5.3}
 
 summary(b5.3)
 ```
 
 #### ⚙️ Code
+
 ```{r show model 5.3, echo = TRUE}
 b5.3 <- brm(data = WaffleDivorce, 
       family = gaussian,
@@ -540,16 +515,16 @@ b5.3 <- brm(data = WaffleDivorce,
       seed = 5, backend = "cmdstanr", silent = 2,
       file = "fits/b05.031")
 ```
-
 :::
 
 ### Diagnosing Multi-linear models
 
-::: {.panel-tabset}
+:::: panel-tabset
 #### Predictor Residual Plot
-::: {.panel-tabset}
 
+::: panel-tabset
 ##### Marriage Rate
+
 ```{r Marriage Rate Residuals}
 b5.4 <- 
   brm(data = WaffleDivorce,
@@ -612,7 +587,8 @@ rateFitted + rateResidual
 
 Little relationship between divorce and marriage rates, once we have accounted for the effect of Median Marriage Age
 
-##### Median Marriage Age 
+##### Median Marriage Age
+
 ```{r Median Age Residuals, include = FALSE}
 b5.4b <- 
   brm(data = WaffleDivorce, 
@@ -679,6 +655,7 @@ Negative relationship between divorce and marriage age, even after we have accou
 :::
 
 #### Posterior Prediction Plots
+
 ```{r Observed vs Fitted plot 5.3}
 
 observed_vs_fitted_plot <-
@@ -706,8 +683,8 @@ observed_vs_fitted_plot
 
 ```
 
-
 #### Causal Counterfactual Plots
+
 ```{r}
 n_size = 300
 
@@ -753,22 +730,13 @@ mcf_plot + dcf_plot
   
 
 ```
-
-:::
-
+::::
 
 "This procedure also brings home the message that regression models measure the remaining association of each predictor with the out- come, after already knowing the other predictors. In computing the predictor residual plots, you had to perform those calculations yourself. In the unified multivariate model, it all hap- pens automatically. Nevertheless, it is useful to keep this fact in mind, because regressions can behave in surprising ways as a result."
-
-
-
-
-
-
 
 ### Solving the DAG
 
 From McElreath, "Age of marriage influences divorce in two ways. First it can have a direct effect, perhaps because younger people change faster than older people and are therefore more likely to grow incompatible with a partner. Second, it can have an indirect effect by influencing the marriage rate. If people get married earlier, then the marriage rate may rise, because there are more young people. Consider for example if an evil dictator forced everyone to marry at age 65. Since a smaller fraction of the population lives to 65 than to 25, forcing delayed marriage will also reduce the marriage rate. If marriage rate itself has any direct effect on divorce, maybe by making marriage more or less normative, then some of that direct effect could be the indirect effect of age at marriage."
-
 
 ```{r parameter comparison}
 
@@ -803,17 +771,9 @@ bind_cols(
 
 ```
 
-
-
 Once we know median age at marriage for a State, there is little or no additional predictive power in also knowing the rate of marriage in that State.
 
-
-::: {.panel-tabset}
-
-
-
-
-
+::: panel-tabset
 #### Residual Map
 
 ```{r}
@@ -887,8 +847,9 @@ deviance_plot_map + residuals_plot
 
 ```
 
-#### Waffle House Effect 
-```{r} 
+#### Waffle House Effect
+
+```{r}
 
 
 waffleHouseEffect_plot <-
@@ -914,14 +875,11 @@ waffleHouseEffect_plot <-
 waffleHouseEffect_plot
 
 ```
-
 :::
 
 ## Masked Relationships
 
-New data set
-Comparative primate milk composition data, from Table 2 of Hinde and Milligan. 2011. Evolutionary Anthropology 20:9-23.
-
+New data set Comparative primate milk composition data, from Table 2 of Hinde and Milligan. 2011. Evolutionary Anthropology 20:9-23.
 
 species: Species name
 
@@ -930,7 +888,6 @@ kcal.per.g: Kilocalories per gram of milk
 mass: Body mass of mother, in kilograms
 
 neocortex.perc: Percent of brain mass that is neocortex
-
 
 ```{r milk wrangling, include = FALSE}
 milk %>% 
@@ -945,8 +902,6 @@ milk2 <- milk %>%
 
 
 ```
-
-
 
 ### Neocortex % Effect on Milk Calories
 
@@ -973,9 +928,9 @@ simMilk <- as_tibble(as_draws_df(milk.01)) %>%
          simKcal = rnorm(n(), simKcalEst, sd = sigma))
 ```
 
-::: {.panel-tabset}
-
+::: panel-tabset
 #### 📈 μ vs full distribution
+
 ```{r mu vs full heat plot milk neocortex}
 
 # Find global limits across both datasets
@@ -1029,12 +984,14 @@ modelEst_plot + model_plot + plot_layout(guides = "collect")
 
 The posterior mean line is weakly positive, but it is highly imprecise. A lot of mildly positive and negative slopes are plausible, given this model and these data.
 
-#### 📊  Summary
+#### 📊 Summary
+
 ```{r summary milk neocortex model}
 summary(milk.01)
 ```
 
 #### ⚙️ Code
+
 ```{r show milk neocortex model, echo = TRUE}
 milk.01 <- 
   brm(data = milk2, 
@@ -1048,8 +1005,8 @@ milk.01 <-
       file = "fits/milk.01.6")
 ```
 
-
 #### 🌌 Prior Vs Posterior
+
 ```{r prior vs post heat plot - milk neocortex model}
 sim_n <- 1e3
 prior_sim <- tibble(simNeocortex = seq(from = -3, to = 3, length.out = sim_n),
@@ -1109,16 +1066,12 @@ post_plot <- ggplot() +
 
 
 prior_plot + post_plot + plot_layout(guides = "collect")
-``` 
-
+```
 :::
-
-
 
 ### Mass Effect on Milk Calories
 
 Now consider another predictor variable, adult female body mass, mass in the data frame. Let’s use the logarithm of mass, log(mass), as a predictor as well. Why the logarithm of mass instead of the raw mass in kilograms? It is often true that scaling measurements like body mass are related by magnitudes to other variables. Taking the log of a measure trans- lates the measure into magnitudes. So by using the logarithm of body mass here, we’re saying that we suspect that the magnitude of a mother’s body mass is related to milk energy, in a linear fashion.
-
 
 ```{r Mass  model, include = FALSE}
 milk2 <- milk2 %>% 
@@ -1148,9 +1101,9 @@ simMilkMass <- as_tibble(as_draws_df(milk.02)) %>%
 
 ```
 
-::: {.panel-tabset}
-
+::: panel-tabset
 #### 📈 μ vs full distribution
+
 ```{r mu vs full heat plot milk mass}
 
 # Find global limits across both datasets
@@ -1204,12 +1157,14 @@ modelEst_plot + model_plot + plot_layout(guides = "collect")
 
 The posterior mean line is moderately negative, but it is highly imprecise.
 
-#### 📊  Summary
+#### 📊 Summary
+
 ```{r summary milk mass model}
 summary(milk.02)
 ```
 
 #### ⚙️ Code
+
 ```{r show milk mass model, echo = TRUE}
 milk.02 <- 
   brm(data = milk2, 
@@ -1223,11 +1178,9 @@ milk.02 <-
       file = "fits/milk.2.0")
 
 ```
-
 :::
+
 ### Multivariate Milk
-
-
 
 ```{r, include = FALSE}
 milk.3 <- 
@@ -1243,9 +1196,7 @@ milk.3 <-
 
 ```
 
-
-::: {.panel-tabset}
-
+::: panel-tabset
 #### Parameters
 
 ```{r}
@@ -1253,6 +1204,7 @@ plot(milk.3)
 ```
 
 #### Counterfactual Plots
+
 ```{r}
 
 nd <- 
@@ -1279,10 +1231,7 @@ p1 <-
   # coord_cartesian(xlim = range(milk2$neocortex.perc), 
   #                 ylim = range(milk2$kcal.per.g))
 ```
-
-
 :::
-
 
 ```{r}
 dag5.7 <- dagitty( "dag{
@@ -1301,5 +1250,233 @@ coordinates(dag5.8) <- list( x=c(M=0,K=1,N=2) , y=c(M=0.5,K=1,N=0.5) )
 MElist <- equivalentDAGs(dag5.8)
 
 drawdag(MElist)
+```
+
+## Categorical Variable
+
+### Binary Categories
+
+Two mutually exclusive categories make the interpretation of models quite simple because it's hard to forget that the lack of Category A implies Category B. An example, lets use male vs females as our categorical variable, with Males being represented as 1 and females as 0 in our data. The models interpretations is that the intercept is the effect of being female and the intercept + $\beta_\text{effect of male}$ is the males effect. The same math goes into the interpretations when our categorical variables have more than 2 options, but it's quite easy to forget that your comparing to one of the categories when you have a list of 20 categories. Always remember that you are comparing to some other category with factor effects.
+
+Let's go back to our Kung! height dataset we used in the last chapter. Let's ignore the effect of weight and the other variables and focus only on sex. Our model is
+
+$$ \text{Height}_i \sim \text{Normal(}\mu_i, \ \sigma_i\text{)}$$ $$ \mu_i = \alpha + \beta_\text{male} \mathbf{I}\text{(male = 1)}$$
+
+$$\alpha \sim \text{Normal(178, 20)}$$
+
+$$ \beta_\text{male} \sim \text{Normal(0, 10)}$$
+
+$$ \sigma \sim \text{Uniform(0, 50)}$$
+
+The parameter $\beta_\text{male}$ only influences prediction for the cases where the individual is a male. Using this approach means that $\beta_\text{male}$ represents the expected difference between males and females in height. This makes assigning our priors a bit harder. Our approach assumes there is more uncertainty about males than females, because a male includes two parameters and therefore has two parameters. 
+
+
+
+```{r prior height sim}
+simHeight <- tibble(female = rnorm(1e5, 178, 20),
+       male = female + rnorm(1e5, 0, 10)) %>% 
+  pivot_longer(cols = everything(),
+               names_to = "sex",
+               values_to = "Height")
+
+prior_plt_5.6 <- ggplot(data = simHeight)+
+  geom_density(aes(x = Height, color = sex),  adjust = 2, lwd = 1)+
+  theme_minimal() +
+  theme(axis.text.y = element_blank(),
+        axis.title.y = element_blank(),
+        axis.ticks.y = element_blank())+
+  scale_x_continuous(
+    breaks = c(48, 60,  72, 84) * 2.54,
+    labels = c("4'0\"",  "5'0\"", 
+                "6'0\"",  "7'0\""),
+    limits = c(40, 98) * 2.54
+  )+
+  labs(title = "Prior Mean")
+  
+
+b5.6 <- 
+  brm(data = kungHeight, 
+      family = gaussian,
+      height ~ 1 + male,
+      prior = c(prior(normal(178, 20), class = Intercept),
+                prior(normal(0, 10), class = b),
+                prior(uniform(0, 50), class = sigma, ub = 50)),
+      iter = 2000, warmup = 500, chains = 4, cores = 4,
+      seed = 5, backend = "cmdstanr", silent = 2,
+      file = "fits/b05.6b")
+
+post_5.6 <- as_tibble(b5.6) %>% 
+  mutate(female_mu = b_Intercept,
+         male_mu = b_Intercept + b_male,
+         female_est = rnorm(n(), mean = female_mu, sd = sigma),
+         male_est = rnorm(n(), mean = male_mu, sd = sigma)) %>% 
+  dplyr::select(female_mu, male_mu, female_est, male_est) %>% 
+  pivot_longer(cols = everything(),
+               names_to = c("sex", ".value"),
+               names_sep = "_",
+               values_to = c("mu", "est"))
+
+post_plt_5.6 <- ggplot(data = post_5.6)+
+  geom_density(aes(x = mu, color = sex),  adjust = 2, lwd = 1)+
+  theme_minimal() +
+  theme(axis.text.y = element_blank(),
+        axis.title.y = element_blank(),
+        axis.ticks.y = element_blank())+
+  scale_x_continuous(
+    breaks = c(48, 60,  72, 84) * 2.54,
+    labels = c("4'0\"",  "5'0\"", 
+                "6'0\"",  "7'0\""),
+    limits = c(40, 98) * 2.54,
+    name = "Height"
+  )+
+  labs(title = "Posterior Mean")
+
+prior_plt_5.6 + post_plt_5.6 + plot_layout(guides = "collect")
+
+```
+Our priors are a bit wide, and the extra variance on males doesn't make to much sense.
+
+A better way is to use an index variable.
+
+$$ \text{Height}_i \sim \text{Normal(}\mu_i, \ \sigma_i\text{)}$$
+$$ \mu_i = \alpha_\text{Sex[i]}$$
+
+$$\alpha_j \sim \text{Normal(178, 20),  for j  = 1..2}$$
+
+$$ \sigma \sim \text{Uniform(0, 50)}$$
+
+```{r}
+kungHeight <- kungHeight %>% 
+  mutate(sex = ifelse(male == 1, "male", "female"))
+
+simHeight <- tibble(female = rnorm(1e5, 178, 20),
+       male = rnorm(1e5, 178, 20)) %>% 
+  pivot_longer(cols = everything(),
+               names_to = "sex",
+               values_to = "Height")
+
+prior_plt_5.6b <- ggplot(data = simHeight)+
+  geom_density(aes(x = Height, color = sex),  adjust = 2, lwd = 1, alpha = .5)+
+  theme_minimal() +
+  theme(axis.text.y = element_blank(),
+        axis.title.y = element_blank(),
+        axis.ticks.y = element_blank())+
+  scale_x_continuous(
+    breaks = c(48, 60,  72, 84) * 2.54,
+    labels = c("4'0\"",  "5'0\"", 
+                "6'0\"",  "7'0\""),
+    limits = c(40, 98) * 2.54
+  )+
+  labs(title = "Prior Mean")
+  
+b5.6b <- brm(
+  data = kungHeight,
+  family = gaussian,
+  height ~ 0 + sex,  # 0 removes intercept, sex creates separate parameters for each level
+  prior = c(
+    prior(normal(178, 20), class = b),     # prior for sex coefficients (a[sex])
+    prior(uniform(0, 50), class = sigma, ub = 50)   # prior for sigma
+  ),
+  chains = 4, iter = 2000, warmup = 500, cores = 4,
+  backend = "cmdstanr", silent = 2, file = "fits/b05.6b4")
+
+post_5.6b <- as_tibble(b5.6b) %>% 
+  mutate(female_mu = b_sexfemale,
+         male_mu = b_sexmale,
+         female_est = rnorm(n(), mean = female_mu, sd = sigma),
+         male_est = rnorm(n(), mean = male_mu, sd = sigma)) %>% 
+  dplyr::select(female_mu, male_mu, female_est, male_est) %>% 
+  pivot_longer(cols = everything(),
+               names_to = c("sex", ".value"),
+               names_sep = "_",
+               values_to = c("mu", "est"))
+
+post_plt_5.6b <- ggplot(data = post_5.6b)+
+  geom_density(aes(x = mu, color = sex),  adjust = 2, lwd = 1)+
+  theme_minimal() +
+  theme(axis.text.y = element_blank(),
+        axis.title.y = element_blank(),
+        axis.ticks.y = element_blank())+
+  scale_x_continuous(
+    breaks = c(48, 60,  72, 84) * 2.54,
+    labels = c("4'0\"",  "5'0\"", 
+                "6'0\"",  "7'0\""),
+    limits = c(40, 98) * 2.54,
+    name = "Height"
+  )+
+  labs(title = "Posterior Mean")
+
+prior_plt_5.6b + post_plt_5.6b + plot_layout(guides = "collect")
+
+```
+
+We actually care about the differences in the genders in height in this case. So for this model we simply subtract the posterior intercepts from each other to show that difference.
+
+```{r}
+as_tibble(b5.6b) %>% 
+  mutate(female_mu = b_sexfemale,
+         male_mu = b_sexmale,
+         contrast = b_sexmale - b_sexfemale) %>% 
+  ggplot()+
+  geom_density(aes(x = contrast), color = "purple2", adjust = 2, lwd = 1)+
+    theme_minimal() +
+  theme(axis.text.y = element_blank(),
+        axis.title.y = element_blank(),
+        axis.ticks.y = element_blank())+
+  scale_x_continuous(
+    breaks = c(0, 2, 4, 6) * 2.54,
+    labels = c("0'0\"",  "02\"", "0'4\"",  "0'6\""),
+    name = "Height"
+  )+
+  labs(title = "Male Height - Female Height Mu")
+```
+
+Binary categories are easy, whether you use an indicator variable or instead an index variable. But when there are more than two categories, the indicator variable approach explodes. While the index approach does not change at all when you add more categories. You do get more parameters, of course, just as many as in the indicator variable approach. But the model specification looks just like it does in the binary case. And the priors continue to be easier, unless you really do have prior information about contrasts.
+
+
+### Milk example
+
+```{r}
+milk
+
+b5.7 <- brm(
+  data = milk,
+  family = gaussian,
+  kcal.per.g ~ 0 + clade,
+  prior = c(
+    prior(normal(0, 0.5), class = b),
+    prior(exponential(1), class = sigma)
+  ),
+  seed = 5, iter = 2000, warmup = 500, cores = 4,
+  backend = "cmdstanr", silent = 2,
+  file = "fits/b05.7c")
+
+
+```
+
+```{r}
+nd <- tibble(clade_nwm = c(1, 0, 0, 0),
+             clade_owm = c(0, 1, 0, 0),
+             clade_s   = c(0, 0, 1, 0),
+             primate   = c("New World Monkey", "Old World Monkey", "Strepsirrhine", "Ape"))
+
+as_tibble(b5.7) %>% 
+  rename("Ape" = b_cladeApe,
+         "New World Monkey" = b_cladeNewWorldMonkey,
+         "Old World Monkey" = b_cladeOldWorldMonkey,
+         "Strepsirrhine" = b_cladeStrepsirrhine) %>% 
+  dplyr::select(c(`Ape`, `New World Monkey`, `Old World Monkey`, `Strepsirrhine`)) %>% 
+  pivot_longer(cols = everything(),
+               names_to = "Primate",
+               values_to = "KCal Per Gram of Milk") %>% 
+  ggplot(aes(x = `KCal Per Gram of Milk`, y = reorder(Primate, `KCal Per Gram of Milk`))) +
+  stat_halfeye(point_interval = median_qi, .width = .95,
+               fill = "firebrick4") +
+  labs(x = "kcal.per.g",
+       y = NULL) +
+  theme_bw() +
+  theme(axis.text.y = element_text(hjust = 0),
+        axis.ticks.y = element_blank(),
+        panel.grid = element_blank())
 ```
 

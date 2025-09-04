@@ -1,0 +1,453 @@
+---
+title: "Chapter 6 Causal Terror"
+editor: visual
+execute:
+  echo: false
+  warning: false
+  message: false
+  cache: true
+  cache.lazy: false
+---
+
+```{r setup}
+library(tidyverse)
+library(brms)
+library(bayesplot)
+library(tidybayes)
+library(patchwork)
+library(GGally)
+library(dagitty)
+library(ggdag)
+
+library(rethinking)
+data(milk)
+```
+
+
+"The more likely it is to kill you, if true, the less likely it is to be true. The more boring the topic, the more rigorous the results. How could this widely believed negative correlation exist? There doesn’t seem to be any reason for studies of topics that people care about to produce less reliable results. Maybe popular topics attract more and worse researchers, like flies drawn to the smell of honey? Actually all that is necessary for such a negative correlation to arise is that peer reviewers care about both newsworthiness and trustworthiness."
+
+
+```{r}
+n <- 300
+data <- tibble(
+  x = rnorm(n, mean = 0, sd = 1),
+  y = rnorm(n, mean = 0, sd = 1)
+)
+
+# Define diagonal line: y = -x + c
+# For a line cutting through top right of the circle, we'll use c = 1.5
+line_intercept <- 1.5
+
+# Classify points: above and to the right means y > -x + c
+data <- data %>%
+  mutate(above_line = y > (-x + line_intercept))
+
+# Create the plot
+ggplot(data, aes(x = x, y = y)) +
+  geom_point(aes(color = above_line), alpha = 0.7, size = 2) +
+  geom_abline(slope = -1, intercept = line_intercept, 
+              color = "blue4", size = 1, linetype = "solid") +
+  scale_color_manual(values = c("FALSE" = "gray50", "TRUE" = "blue"),
+                     name = "Publication Status",
+                     labels = c("Unpublished", "Published")) +
+  labs(title = "Selection Distortion Effects of Publishing Papers",
+       subtitle = "Peer reviewers create a negative correlation ",
+       x = "Trustworthiness",
+       y = "Newsworthiness") +
+  theme_minimal() +
+  coord_fixed() # Keeps aspect ratio 1:1 to show true circle shape
+```
+
+Multiple regression is plagued with "paradoxes" that happen when we condition (like conditioning on publication status) on some variables in our regression. In this chapter we'll go over three problems with regressing on additional variables: multicollinearity, post-treatment bias, and collider bias.
+
+## Multicollinearity
+
+Multicollinearity means very strong correlation between two or more predictor variables. The consequence of it is that the posterior distribution will seem to suggest that none of the variables is reliably associated with the outcome, even if all of the variables are in reality strongly associated with the outcome. In fact, there is nothing wrong with multicollinearity. The model will work fine for prediction, it just frustrates most peoples intuitive understanding of what multi regression does.
+
+### Left leg predicts height but right leg doesn't?
+
+```{r}
+
+n = 300
+height_sim = tibble(height = rnorm(n, 170, 6.5)) %>% 
+  mutate(below_hip_height = height * rnorm(n, .45, .02),
+         left_leg = below_hip_height * rnorm(n, 1, .001),
+         right_leg = below_hip_height * rnorm(n, 1, .001),
+         left_leg_z = (left_leg - mean(left_leg))/sd(left_leg),
+         right_leg_z = (right_leg - mean(right_leg))/sd(right_leg),)
+
+leftLeg_plot <- ggplot(data = height_sim)+
+  geom_point(aes(x= left_leg, y = height), alpha = 1, size = 1)+
+  theme_minimal()+
+  labs(x = "Left Leg Height (cm)", y = "Height (cm)", title = "Left Leg vs Height")
+
+rightLeg_plot <- ggplot(data = height_sim)+
+  geom_point(aes(x= right_leg, y = height), alpha = 1, size = 1) +
+  theme_minimal()+
+  labs(x = "Right Leg Height (cm)", y = "Height (cm)", title = "Right Leg vs Height")
+
+RightLeft_plot <- ggplot(data = height_sim)+
+  geom_point(aes(x= right_leg, y = left_leg), alpha = 1, size = 1)+
+  theme_minimal()+
+  labs(x = "Right Leg Height (cm)", y = "Left Leg Height (cm)", title = "Right Leg vs Left Leg")
+
+leftLeg_plot + rightLeg_plot + RightLeft_plot
+```
+
+
+$$\text{Height}_i = \text{Normal}(\mu_i, \sigma)$$
+
+$$\mu_i = \alpha + \beta_\text{1}\text{Left Leg Z}_i +  \beta_\text{2}\text{Right Leg Z}_i$$
+$$\alpha = \text{Normal}(170, 10)$$
+
+$$\beta_i = \text{Normal}(0, 3)$$
+$$\sigma = \text{Exponential}(3)$$
+
+
+
+```{r}
+
+b6.0 <- brm(data = height_sim,
+    family = gaussian,
+    height ~ 1 + left_leg_z + right_leg_z,
+    prior = c(
+      prior(normal(170, 10), class = Intercept),
+      prior(normal(0, 10), class = b),
+      prior(exponential(5), class = sigma)
+    ),
+    seed = 5, iter = 2000, warmup = 500, cores = 4,
+    backend = "cmdstanr", silent = 2, file = "fits/b06D")
+
+
+as_tibble(b6.0) %>% 
+  rename("Left Leg" = b_left_leg_z,
+         "Right Leg" = b_right_leg_z) %>% 
+  dplyr::select(c(`Left Leg`, `Right Leg`)) %>% 
+  pivot_longer(cols = everything(),
+               names_to = "Leg",
+               values_to = "Height Effect") %>% 
+  ggplot(aes(x = `Height Effect`, y = reorder(Leg, `Height Effect`))) +
+  stat_halfeye(point_interval = median_qi, .width = .95,
+               fill = "firebrick4") +
+  labs(x = "Height Effect",
+       y = NULL) +
+  theme_bw() +
+  theme(axis.text.y = element_text(hjust = 0),
+        axis.ticks.y = element_blank(),
+        panel.grid = element_blank())
+
+plot(b6.0)
+
+bLeft_vs_bRight_plot <- as_tibble(b6.0) %>% 
+  rename("Left Leg" = b_left_leg_z,
+         "Right Leg" = b_right_leg_z) %>% 
+  dplyr::select(c(`Left Leg`, `Right Leg`)) %>% 
+  ggplot()+
+  geom_point(aes(x = `Right Leg`, y = `Left Leg`), size = .1, alpha = .1)+
+  theme_minimal()+
+  labs(title = "Coefficients Correlation")
+
+bLeft_plus_bRight_plot <- as_tibble(b6.0) %>% 
+  mutate(legSum = b_left_leg_z + b_right_leg_z) %>% 
+  dplyr::select(c(legSum)) %>% 
+  ggplot()+
+  geom_density(aes(x = legSum), lwd = 1, adjust = 2, color = "purple3")+
+  theme_minimal()+
+  theme(axis.text.y = element_blank(),
+        axis.title.y = element_blank(),
+        axis.ticks.y = element_blank())+
+  labs(x = "Left Leg Z + Right Leg Z Effect", title = "Coefficients Combined Effect")
+
+bLeft_vs_bRight_plot + bLeft_plus_bRight_plot
+```
+The posterior distribution for these two parameters is very highly correlated, with all of the plausible values of $\beta_\text{left}$ and $\beta_\text{right}$ lying along a narrow ridge.
+
+One way to think of this phenomenon is that you have approximated this model:
+
+$$ y_i \sim \text{Normal}(\mu_i, \sigma) $$
+
+$$ \mu_i = \alpha + \beta_1x_i + \beta_2x_i $$ 
+
+The variable y is the outcome, like height in the example, and x is a single predictor, like the leg lengths in the example. Here x is used twice, which is a perfect example of the problem caused by using the almost-identical leg lengths. From the computer’s perspective, this model is simply:
+
+$$ \mu_i = \alpha + (\beta_1 + \beta_2)x_i $$ 
+
+
+When two predictor variables are very strongly correlated, including both in a model may lead to confusion. The posterior distribution isn’t wrong, in such cases. It’s telling you that the question you asked cannot be answered with these data. And that’s a great thing for a model to say, that it cannot answer your question. And if you are just interested in prediction, you’ll find that this leg model makes fine predictions. It just doesn’t make any claims about which leg is more important.
+
+
+### Milk Example
+
+Using the milk primate data from the last chapter
+
+```{r, echo = TRUE}
+milk <- milk %>% 
+  mutate(kcal_z = (kcal.per.g - mean(kcal.per.g))/sd(kcal.per.g),
+         fat_z = (perc.fat - mean(perc.fat))/sd(perc.fat),
+         lactose_z = (perc.lactose - mean(perc.lactose))/sd(perc.lactose))
+
+b6.1 <- brm(data = milk,
+            family = gaussian,
+            kcal_z ~ 1 + fat_z,
+            prior = c(
+              prior(normal(0, 0.2), class = Intercept),
+              prior(normal(0, 0.5), class = b),
+              prior(exponential(1), class = sigma)
+            ),
+            iter = 2000, warmup = 500, cores = 4, seed = 5,
+            backend = "cmdstanr", silent = 2, file = "fits/b06.1")
+
+b6.1b <- brm(data = milk,
+            family = gaussian,
+            kcal_z ~ 1 + lactose_z,
+            prior = c(
+              prior(normal(0, 0.2), class = Intercept),
+              prior(normal(0, 0.5), class = b),
+              prior(exponential(1), class = sigma)
+            ),
+            iter = 2000, warmup = 500, cores = 4, seed = 5,
+            backend = "cmdstanr", silent = 2, file = "fits/b06.1b")
+
+
+posterior_summary(b6.1)[1:4, ] %>% round(digits = 3)
+posterior_summary(b6.1b)[1:4, ] %>% round(digits = 3)
+```
+
+
+```{r}
+ggpairs(data = milk, columns = c("kcal_z", "fat_z", "lactose_z"))+
+  theme(panel.grid = element_blank())
+```
+
+
+The posterior distributions for $\beta_\text{fat}$ and $\beta_\text{lactose}$ are essentially mirror images of one another. The
+posterior mean of $\beta_\text{fat}$ is as positive as the mean of $\beta_\text{lactose}$ is negative. Both are narrow posterior distributions that lie almost entirely on one side or the other of zero. Given the strong associ- ation of each predictor with the outcome, we might conclude that both variables are reliable predictors of total energy in milk, across species. The more fat, the more kilocalories in the milk. The more lactose, the fewer kilocalories in milk. But watch what happens when we place both predictor variables in the same regression model:
+
+```{r}
+b6.1c <- brm(data = milk,
+             family = gaussian,
+             kcal_z ~ 1 + fat_z + lactose_z,
+             prior = c(
+               prior(normal(0, 0.2), class = Intercept),
+               prior(normal(0, 0.5), class = b),
+               prior(exponential(1), class = sigma)
+             ),
+             iter = 2000, warmup = 500, cores = 4, seed = 5,
+             backend = "cmdstanr", silent = 2, file = "fits/b06.1c")
+
+posterior_summary(b6.1c)[1:4,] %>% round(digits = 3)
+```
+Now the posterior means of both $\beta_\text{fat}$ and $\beta_\text{lactose}$ are closer to zero. And the standard deviations for both parameters are twice as large as in the bivariate models.
+
+What has happened is that the variables perc.fat and perc.lactose contain much of the same information.
+
+In the scientific literature, you might encounter a variety of dodgy ways of coping with multicollinearity. Few of them take a causal perspective. Some fields actually teach students to inspect pairwise correlations before fitting a model, to identify and drop highly correlated predictors. This is a mistake. Pairwise correlations are not the problem. It is the conditional associations—not correlations—that matter. And even then, the right thing to do will depend upon what is causing the collinearity. The associations within the data alone are not enough to decide what to do.
+
+What is likely going on in the milk example is that there is a core tradeoff in milk com- position that mammal mothers must obey. If a species nurses often, then the milk tends to be watery and low in energy. Such milk is high in sugar (lactose). If instead a species nurses rarely, in short bouts, then the milk needs to be higher in energy. Such milk is very high in fat. This implies a causal model something like this:
+
+```{r}
+dag_coords <-
+  tibble(name = c("L", "D", "F", "K"),
+         x    = c(1, 2, 3, 2),
+         y    = c(2, 2, 2, 1))
+
+m1 <- dagify("L" ~ "D",
+             "F" ~ "D",
+             "K" ~ "L" + "F",
+       coords = dag_coords) %>%
+  ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+  geom_dag_point(color = "firebrick", alpha = 1/4, size = 10) +
+  geom_dag_text(color = "firebrick") +
+  geom_dag_edges(edge_color = "firebrick")+
+  scale_x_continuous(NULL, breaks = NULL, expand = c(0.1, 0.1)) +
+  scale_y_continuous(NULL, breaks = NULL, expand = c(0.2, 0.2)) +
+  theme_bw() +
+  theme(panel.grid = element_blank())
+
+m1
+
+```
+
+The central tradeoff decides how dense, D, the milk needs to be. We haven’t observed this variable. Then fat, F, and lactose, L, are determined. Finally, the composition of F and L determines the kilocalories, K. If we could measure D, or had an evolutionary and economic model to predict it based upon other aspects of a species, that would be better than stumbling through regressions. We’d just regress K on D, ignoring the mediating L and F, to estimate the causal influence of density on energy.
+
+Nature does not owe us easy inference, even when the model is correct.
+
+
+## Post-treatment bias
+
+We often omit variables when we shouldn't less rare is the mistaken inferences arisen from including variables, we call this post-treatment bias. 
+
+The language “post-treatment” comes in fact from thinking about experimental designs. Suppose for example that you are growing some plants in a greenhouse. You want to know the difference in growth under different anti-fungal soil treatments, because fungus on the plants tends to reduce their growth. Plants are initially seeded and sprout. Their heights are measured. Then different soil treatments are applied. Final measures are the height of the plant and the presence of fungus. There are four variables of interest here: initial height, final height, treatment, and presence of fungus. Final height is the outcome of interest. But which of the other variables should be in the model? If your goal is to make a causal inference about the treatment, you shouldn’t include the presence of fungus, because it is a post-treatment effect.
+
+```{r}
+n <- 100 # number of plants
+initial_height <- rnorm(n, 10, 2)
+treatment <- rep(0:1, each = 100/2)
+fungus <- rbinom(n, size =1, prob = 0.5 - (treatment * 0.4))
+
+final_height = initial_height + rnorm(n, 5 - (3*fungus))
+
+exp_data <- tibble(initial_height = initial_height,
+       treatment = treatment,
+       fungus = fungus,
+       final_height = final_height)
+```
+
+It's easier to imagine the priors when we think of the final height as a porportion of their initial height
+
+
+
+$$ \text{Final Height}_i \sim \text{Normal}(\mu_i, \sigma) $$
+
+$$\mu_i = \text{Initial Height}_i \times p $$
+If p = 1, the plant hasn’t changed at all from time t = 0 to time t = 1. If p = 2, it has doubled in height. So if we center our prior for p on 1, that implies an expectation of no change in height.
+
+$$ p \sim \text{Log-Normal(0,  0.25)}$$
+
+```{r, echo = TRUE}
+b6.2 <- brm(
+  data = exp_data,
+  family = gaussian(),
+  bf(final_height ~ initial_height * p,
+     p ~ 1,  # p gets its own linear predictor
+     nl = TRUE),  # nonlinear model
+  prior = c(
+    prior(lognormal(0, 0.25), nlpar = p, lb = 0),
+    prior(exponential(1), class = sigma)
+  ),
+  chains = 4, iter = 2000, warmup = 500, seed = 5,
+  backend = "cmdstanr", silent = 2, file = "fits/b0.6.2b")
+
+posterior_summary(b6.2)[1:2,] %>% round(digits = 3)
+
+```
+
+
+Cool so about 40% growth on average.
+
+### Adding Covariates
+
+$$ \text{Final Height}_i \sim \text{Normal}(\mu_i, \sigma) $$
+
+$$\mu_i = \text{Initial Height}_i \times p $$
+
+$$ p = \alpha + \beta_T\text{Treatment}_i + \beta_F\text{Fungus}_i $$
+
+$$ \alpha \sim  \text{Log-Normal(0, 0.25)} $$
+
+$$ \beta_T \sim \text{Normal(0, 0.5)} $$
+$$ \beta_F \sim \text{Normal(0, 0.5)} $$
+
+$$ \sigma \sim \text{Exponential(1)} $$
+
+The proportion of growth $p$ is now a function of the predictor variables
+
+```{r}
+b6.3 <- brm(data = exp_data,
+            family = gaussian,
+            bf(
+              final_height ~ initial_height * p,
+              p ~ 1 + treatment + fungus,
+              nl = TRUE
+            ),
+            prior = c(
+              prior(lognormal(0, 0.25), nlpar = p, class = b, coef = Intercept),
+              prior(normal(0, 0.5), nlpar = p, class = b, coef = fungus),
+              prior(normal(0, 0.5), nlpar = p, class = b, coef = treatment),
+              prior(exponential(1), class = sigma)
+            ),
+            iter = 2000, warmup = 500, cores = 4, seed = 5,
+            backend = "cmdstanr", silent = 2, file = "fits/b06.3")
+
+# get_prior(bf(final_height ~ initial_height * p, p ~ treatment + fungus, nl = TRUE),
+#           data = exp_data, family = gaussian())
+
+posterior_summary(b6.3)[1:4,] %>% round(digits = 3)
+```
+The $\alpha$ parameter is the same as p before. And it has nearly the same posterior. The marginal posterior for $\beta_\text{Treatment}$, the effect of treatment, is solidly zero, with a tight interval. The problem is that fungus is mostly a consequence of treatment. To actually answer our research question of the effect of treatment we must omit the fungus variable.
+
+like such:
+
+$$ \text{Final Height}_i \sim \text{Normal}(\mu_i, \sigma) $$
+
+$$\mu_i = \text{Initial Height}_i \times p $$
+
+$$ p = \alpha + \beta_T\text{Treatment}_i$$
+
+The rest of the model is the same as above
+
+```{r}
+b6.4 <- brm(data = exp_data,
+            family = gaussian,
+            bf(
+              final_height ~ initial_height * p,
+              p ~ 1 + treatment,
+              nl = TRUE
+            ),
+            prior = c(
+              prior(lognormal(0, 0.25), nlpar = p, class = b, coef = Intercept),
+              prior(normal(0, 0.5), nlpar = p, class = b, coef = treatment),
+              prior(exponential(1), class = sigma)
+            ),
+            iter = 2000, warmup = 500, cores = 4, seed = 5,
+            backend = "cmdstanr", silent = 2, file = "fits/b06.4")
+
+# get_prior(bf(final_height ~ initial_height * p, p ~ treatment + fungus, nl = TRUE),
+#           data = exp_data, family = gaussian())
+
+posterior_summary(b6.4)[1:3,] %>% round(digits = 3)
+```
+
+Here our treatment effect does solidly increase the height of the plant by 3% - 17%.
+
+### Looking at the DAG
+
+```{r}
+dag_coords <-
+  tibble(name = c("H0", "H1", "F", "T"),
+         x    = c(1, 2, 3, 4),
+         y    = c(2, 1, 2, 2))
+
+m2 <- dagify("H1" ~ "H0 + F",
+             "F" ~ "T",
+       coords = dag_coords) %>%
+  ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+  geom_dag_point(color = "firebrick", alpha = 1/4, size = 10) +
+  geom_dag_text( color = "firebrick", parse = TRUE) +
+  geom_dag_edges(edge_color = "firebrick") +
+  scale_x_continuous(NULL, breaks = NULL, expand = c(0.1, 0.1)) +
+  scale_y_continuous(NULL, breaks = NULL, expand = c(0.2, 0.2)) +
+  theme_bw() +
+  theme(panel.grid = element_blank())+
+  labs(caption = "H0 = initial Height, H1 = final height, F = fungus, T = treatment")
+
+m2
+
+```
+
+As the DAG helps us see once we control for fungus we are cutting off all of it's influences (AKA the treatments entire influence here). There is no information in T about H1 that is not also in F. 
+
+
+## Collider Bias 
+
+Going back to our intro on the the most newsworthy science papers being the less trustworthy we can represent the causal model like this.
+
+```{r}
+dag_coords <- tibble(name = c("T", "S", "N"),
+                     x = c(1, 2, 3),
+                     y = c(1, 1, 1))
+
+m3 <- dagify("S" ~ "T" + "N",
+             coords = dag_coords) %>% 
+  ggplot(aes(x = x, y = y, xend = xend, yend = yend))+
+  geom_dag_point(color = "firebrick", alpha = 1/4, size = 10)+
+  geom_dag_text( color = "firebrick", parse = TRUE) +
+  geom_dag_edges(edge_color = "firebrick") +
+  scale_x_continuous(NULL, breaks = NULL, expand = c(0.1, 0.1)) +
+  scale_y_continuous(NULL, breaks = NULL, expand = c(0.2, 0.2)) +
+  theme_bw() +
+  theme(panel.grid = element_blank())+
+  labs(caption = "T = Trustworthiness, N = Newsworthiness, S = Selection")
+```
+
+This is a collider structure, trustworthiness and newsworthiness are statistically associated when looking at S but they are not causally associated. Once you learn that a paper has been selected (S), then learning its trustworthiness (T) also provides information about its newsworthiness (N). Otherwise it wouldn’t have been funded. Why? Because if, for example, a selected proposal has low trustworthiness, then it must have high newsworthiness.
