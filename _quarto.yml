@@ -10,9 +10,9 @@ website:
       - href: ch4_linear_regression_polished.qmd
         text: Linear Regression
       - href: ch5_multilinear.qmd
-        text: Multi-Linear Regression - Intro to Causality
-      - href: forkingData.qmd
-        text: Forking Paths
+        text: Multi Regression - Intro to Causality
+      - href: ch6_DAG.qmd
+        text: Causal Paths
 format:
   html:
     theme: cosmo
