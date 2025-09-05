@@ -1,5 +1,4 @@
 ---
-title: "Chapter 6 Causal Terror"
 editor: visual
 execute:
   echo: false
@@ -9,6 +8,7 @@ execute:
   cache.lazy: false
 ---
 
+## Causal Terror Intro
 ```{r setup}
 library(tidyverse)
 library(brms)
@@ -67,6 +67,8 @@ Multicollinearity means very strong correlation between two or more predictor va
 ### Left leg predicts height but right leg doesn't?
 
 ```{r}
+#| fig-width: 8
+#| fig-height: 4
 
 n = 300
 height_sim = tibble(height = rnorm(n, 170, 6.5)) %>% 
@@ -106,6 +108,9 @@ $$\sigma = \text{Exponential}(3)$$
 
 
 ```{r}
+#| fig-width: 8
+#| fig-height: 2
+
 
 b6.0 <- brm(data = height_sim,
     family = gaussian,
@@ -136,7 +141,6 @@ as_tibble(b6.0) %>%
         axis.ticks.y = element_blank(),
         panel.grid = element_blank())
 
-plot(b6.0)
 
 bLeft_vs_bRight_plot <- as_tibble(b6.0) %>% 
   rename("Left Leg" = b_left_leg_z,
@@ -180,7 +184,7 @@ When two predictor variables are very strongly correlated, including both in a m
 
 Using the milk primate data from the last chapter
 
-```{r, echo = TRUE}
+```{r}
 milk <- milk %>% 
   mutate(kcal_z = (kcal.per.g - mean(kcal.per.g))/sd(kcal.per.g),
          fat_z = (perc.fat - mean(perc.fat))/sd(perc.fat),
@@ -215,6 +219,9 @@ posterior_summary(b6.1b)[1:4, ] %>% round(digits = 3)
 
 
 ```{r}
+#| fig-width: 8
+#| fig-height: 4
+
 ggpairs(data = milk, columns = c("kcal_z", "fat_z", "lactose_z"))+
   theme(panel.grid = element_blank())
 ```
@@ -246,6 +253,9 @@ In the scientific literature, you might encounter a variety of dodgy ways of cop
 What is likely going on in the milk example is that there is a core tradeoff in milk com- position that mammal mothers must obey. If a species nurses often, then the milk tends to be watery and low in energy. Such milk is high in sugar (lactose). If instead a species nurses rarely, in short bouts, then the milk needs to be higher in energy. Such milk is very high in fat. This implies a causal model something like this:
 
 ```{r}
+#| fig-width: 8
+#| fig-height: 2
+
 dag_coords <-
   tibble(name = c("L", "D", "F", "K"),
          x    = c(1, 2, 3, 2),
@@ -262,7 +272,8 @@ m1 <- dagify("L" ~ "D",
   scale_x_continuous(NULL, breaks = NULL, expand = c(0.1, 0.1)) +
   scale_y_continuous(NULL, breaks = NULL, expand = c(0.2, 0.2)) +
   theme_bw() +
-  theme(panel.grid = element_blank())
+  theme(panel.grid = element_blank())+
+  labs(caption = "L = lactose, D = Milk Density, F = Fat, K = kiloCalories")
 
 m1
 
@@ -403,6 +414,9 @@ Here our treatment effect does solidly increase the height of the plant by 3% - 
 ### Looking at the DAG
 
 ```{r}
+#| fig-width: 8
+#| fig-height: 2
+
 dag_coords <-
   tibble(name = c("H0", "H1", "F", "T"),
          x    = c(1, 2, 3, 4),
@@ -433,6 +447,9 @@ As the DAG helps us see once we control for fungus we are cutting off all of it'
 Going back to our intro on the the most newsworthy science papers being the less trustworthy we can represent the causal model like this.
 
 ```{r}
+#| fig-width: 8
+#| fig-height: 1
+
 dag_coords <- tibble(name = c("T", "S", "N"),
                      x = c(1, 2, 3),
                      y = c(1, 1, 1))
@@ -448,6 +465,289 @@ m3 <- dagify("S" ~ "T" + "N",
   theme_bw() +
   theme(panel.grid = element_blank())+
   labs(caption = "T = Trustworthiness, N = Newsworthiness, S = Selection")
+
+m3
 ```
 
 This is a collider structure, trustworthiness and newsworthiness are statistically associated when looking at S but they are not causally associated. Once you learn that a paper has been selected (S), then learning its trustworthiness (T) also provides information about its newsworthiness (N). Otherwise it wouldn’t have been funded. Why? Because if, for example, a selected proposal has low trustworthiness, then it must have high newsworthiness.
+
+We can make another collider causal model by thinking that both Happiness levels and Age cause one to get married.
+
+```{r}
+#| fig-width: 8
+#| fig-height: 1
+
+dag_coords <- tibble(name = c("H", "M", "A"),
+                     x = c(1, 2, 3),
+                     y = c(1, 1, 1),
+                     observed = c(TRUE, TRUE, FALSE))  # A is unobserved
+
+m4 <- dagify("M" ~ "H" + "A",
+             coords = dag_coords) %>% 
+  ggplot(aes(x = x, y = y, xend = xend, yend = yend))+
+  geom_dag_point(color = "firebrick", alpha = 1/4, size = 10)+
+  geom_dag_text( color = "firebrick", parse = TRUE) +
+  geom_dag_edges(edge_color = "firebrick") +
+  scale_x_continuous(NULL, breaks = NULL, expand = c(0.1, 0.1)) +
+  scale_y_continuous(NULL, breaks = NULL, expand = c(0.2, 0.2)) +
+  theme_bw() +
+  theme(panel.grid = element_blank())+
+  labs(caption = "H = Happiness, M = Marritial Status, A = Age")
+
+
+m4
+```
+
+Even though there is no causal association between happiness and age, if we condition on marriage (i.e. include it as a predictor in a regression) then we will have a statistical association between age and happiness. 
+
+
+```{r}
+#| fig-width: 10
+#| fig-height: 4
+
+sim_Marriages <- as_tibble(sim_happiness( seed=1977 , N_years=1000))
+
+
+ggplot(data = sim_Marriages, aes(x = age, y = happiness, color = as.factor(married), fill = as.factor(married)))+
+  scale_color_manual(values = c("black", "blue"), labels = c("Not Married", "Married"), name = "Marital Status")+
+  scale_fill_manual(values = c("white", "blue"), labels = c("Not Married", "Married"), name = "Marital Status")+
+  geom_point(shape = 21)+
+  theme_minimal()
+```
+
+Consider only the blue points, the married people. Among only the blue points, older individuals have lower average happiness. This is because more people get marriage at time goes on, so the mean happiness among married people approaches the population average of zero. Now consider only the open points, the unmarried people. Here it is also true that mean happiness declines with age. This is because happier individuals migrate over time into the married sub-population. So in both the married and unmarried sub-populations, there is a negative relationship between age and happiness. But in neither sub-population does this accurately reflect causation.
+
+If we came across this data and want to ask whether age is related to happiness. You don't know the true causal model. But you reason, that marriage status might be an important confound. If married people are more or less happy, on average, then you need to condition on marriage status in order to infer the relationship between age and happiness.
+
+You're regression model would look like:
+
+$$\mu_\text{Happiness for individual i} = \alpha_\text{Marriage Status Intercept} + \beta_AA_i$$
+
+```{r}
+#| fig-width: 10
+#| fig-height: 2
+
+sim_Marriages_clean <- sim_Marriages %>%
+  filter(age >= 18) %>% 
+  mutate(adult_age = (age - 18) / (65-18),
+         single = -1 * (married - 1),
+         maritialStatus = ifelse(married == 1, "married", "single"))
+
+
+# get_prior(happiness ~ 0 + single + married + adult_age,
+#           data = sim_Marriages_clean,
+#           family = gaussian())
+
+
+b6.5 <- brm(
+  data = sim_Marriages_clean,
+  family = gaussian(),
+  happiness ~ 0 + single + married + adult_age,
+  prior = c(
+    prior(normal(0, 1), class = b, coef = married),
+    prior(normal(0, 1), class = b, coef = single),
+    prior(normal(0, 2), class = b, coef = adult_age),
+    prior(exponential(2), class = sigma)
+  ),
+  iter = 2000, warmup = 500, seed = 4, cores = 4,
+  backend = "cmdstanr", silent = 2, file = "fits/b06.5.3"
+)
+
+#posterior_summary(b6.5)[1:4, ] %>% round(digits = 3)
+
+as_tibble(b6.5) %>% 
+  rename("Married" = b_married,
+         "Single" = b_single,
+         "Age" = b_adult_age) %>% 
+  dplyr::select(c(`Married`, `Single`, `Age`)) %>% 
+  pivot_longer(cols = everything(),
+               names_to = "Covariate",
+               values_to = "Effect on happiness") %>% 
+  ggplot(aes(x = `Effect on happiness`, y = reorder(Covariate, `Effect on happiness`))) +
+  stat_halfeye(point_interval = median_qi, .width = .95,
+               fill = "firebrick4") +
+  labs(x = "Effect on happiness",
+       y = NULL) +
+  theme_bw() +
+  theme(axis.text.y = element_text(hjust = 0),
+        axis.ticks.y = element_blank(),
+        panel.grid = element_blank())
+```
+
+The model is quite sure that age is associated with happiness. What if we omit marital status
+
+$$ \mu_\text{Happiness for individual i} = \alpha +  \beta_A\text{Age}_i $$
+
+```{r}
+#| fig-width: 10
+#| fig-height: 2
+
+b6.6 <- brm(
+  data = sim_Marriages_clean,
+  family = gaussian(),
+  happiness ~ 1 + adult_age,
+  prior = c(
+    prior(normal(0, 2), class = b, coef = adult_age),
+    prior(exponential(2), class = sigma)
+  ),
+  iter = 2000, warmup = 500, seed = 4, cores = 4,
+  backend = "cmdstanr", silent = 2, file = "fits/b06.6.1"
+)
+
+#posterior_summary(b6.5)[1:4, ] %>% round(digits = 3)
+
+as_tibble(b6.6) %>% 
+  rename("Age" = b_adult_age) %>% 
+  dplyr::select(c(`Age`, `Intercept`)) %>% 
+  pivot_longer(cols = everything(),
+               names_to = "Covariate",
+               values_to = "Effect on happiness") %>% 
+  ggplot(aes(x = `Effect on happiness`, y = reorder(Covariate, `Effect on happiness`))) +
+  stat_halfeye(point_interval = median_qi, .width = .95,
+               fill = "firebrick4") +
+  labs(x = "Effect on happiness",
+       y = NULL) +
+  theme_bw() +
+  theme(axis.text.y = element_text(hjust = 0),
+        axis.ticks.y = element_blank(),
+        panel.grid = element_blank())
+```
+
+This exactly what we'd expect to see when we condition on a collider, if we conditioned on it we'd see a spurious associateion between the two causes.
+
+
+## The Haunted DAG
+
+Collider bias can arise from unobserved variables. Suppose we want to find the direct influence of both parents ($P$) and grandparents ($G$) on the educational achievements of children ($C$). Since grandparents also presumably influence their own children's education there is an arrow $G \rightarrow P$.
+
+```{r}
+#| fig-width: 3
+#| fig-height: 3
+dag_coords <- tibble(name = c("G", "P", "C"),
+                     x = c(1, 2, 2),
+                     y = c(2, 2, 1))
+
+m5 <- dagify("C" ~ "P" + "G",
+             "P" ~ "G",
+             coords = dag_coords) %>% 
+  ggplot(aes(x = x, y = y, xend = xend, yend = yend))+
+  geom_dag_point(color = "firebrick", alpha = 1/4, size = 10)+
+  geom_dag_text( color = "firebrick", parse = TRUE) +
+  geom_dag_edges(edge_color = "firebrick") +
+  scale_x_continuous(NULL, breaks = NULL, expand = c(0.1, 0.1)) +
+  scale_y_continuous(NULL, breaks = NULL, expand = c(0.2, 0.2)) +
+  theme_bw() +
+  theme(panel.grid = element_blank())+
+  labs(caption = "G = Grandparents, P = Parents, C = Children")
+
+m5
+```
+
+But suppose there are unmeasured, common influences on parents and their children, such as neighborhoods, that are not shared by grandparents (who live on the south coast of Spain now). Then our DAG becomes haunted by the unobserved U:
+
+```{r}
+#| fig-width: 4
+#| fig-height: 3
+dag_coords <- tibble(name = c("G", "P", "C", "U"),
+                     x = c(1, 2, 2, 2.5),
+                     y = c(2, 2, 1, 1.5))
+
+m6 <- dagify("C" ~ "P" + "G" + "U",
+             "P" ~ "G" + "U",
+             coords = dag_coords) %>% 
+  ggplot(aes(x = x, y = y, xend = xend, yend = yend))+
+  geom_dag_point(color = "firebrick", alpha = 1/4, size = 10)+
+  geom_dag_point(data = . %>% filter(name == "U"), 
+                 color = "firebrick4", fill = NA, size = 10, shape = 21, 
+                 stroke = 2, linetype = "dashed")+
+  geom_dag_text( color = "firebrick", parse = TRUE) +
+  geom_dag_edges(edge_color = "firebrick") +
+  scale_x_continuous(NULL, breaks = NULL, expand = c(0.1, 0.1)) +
+  scale_y_continuous(NULL, breaks = NULL, expand = c(0.2, 0.2)) +
+  theme_bw() +
+  theme(panel.grid = element_blank())+
+  labs(caption = "G = Grandparents, P = Parents, C = Children, U = Unobserved Effect")
+
+m6
+```
+
+Now $P$ is a common consequence of $G$ and $U$, so if we condition on $P$, it will bias inference about $G \rightarrow C$, even if we never get to measure $U$. This isn't immediately obvious, so let’s crawl through a quantitative example.
+
+```{r family education simulation, include = TRUE}
+b_GP <- 1 # direct effect of G on P
+b_GC <- 0 # direct effecct of G on C
+b_PC <- 1 # direct effect of C on P
+b_U <- 2 # direct effect of U on P and C
+```
+
+For this example we're going to say that Grandparents $G$ have no direct effect on grandkids $C$. The example doesn’t depend upon that effect being exactly zero, but it will make the lesson clearer.
+
+```{r}
+N_sims <- 200 # number of grandparent-parent-child triads
+set.seed(1)
+U <- 2 * rbinom(N_sims, 1, 0.5) - 1
+G <- rnorm(N_sims)
+P <- rnorm(N_sims, (b_GP * G) + (b_U * U))
+C <- rnorm(N_sims, (b_GC * G) + (b_PC * P) + (b_U * U))
+
+familySim <- tibble(C=C, P=P, G=G, U=U)
+
+```
+
+Now what happens when we try to infer the influence of grandparents? Since some of the total effect of grandparents passes through parents, we realize we need to control for parents. Our regression looks like
+
+$$ \mu_\text{children} = \alpha + \beta_G\text{Grandparents} + \beta_P\text{Parents} $$
+```{r}
+#| fig-width: 10
+#| fig-height: 3
+
+b6.7 <- brm(data = familySim,
+            family = gaussian,
+            C ~ 1 + G + P,
+            prior = c(
+              prior(normal(0, 5), class = Intercept),
+              prior(normal(0, 2), class = b),
+              prior(exponential(2), class = sigma)
+            ),
+            iter = 2000, warmup = 500, cores = 4, seed = 4,
+            backend = "cmdstanr", silent = 2, file = "fits/b06.7.0"
+            )
+
+as_tibble(b6.7) %>% 
+  rename("Grandparents" = b_G,
+         "Parents" = b_P) %>% 
+  dplyr::select(c(`Grandparents`, `Parents`, `Intercept`)) %>% 
+  pivot_longer(cols = everything(),
+               names_to = "Covariate",
+               values_to = "Effect") %>% 
+  ggplot(aes(x = `Effect`, y = reorder(Covariate, `Effect`))) +
+  stat_halfeye(point_interval = median_qi, .width = .95,
+               fill = "firebrick4") +
+  labs(x = "Effect on Childs Educational Attainment",
+       y = NULL) +
+  theme_bw() +
+  theme(axis.text.y = element_text(hjust = 0),
+        axis.ticks.y = element_blank(),
+        panel.grid = element_blank())
+```
+
+The inferred effect of parents looks too big, almost twice as large as it should be. That isn’t surprising. Some of the correlation between $P$ and $C$ is due to $U$, and the model doesn’t know about $U$. That’s a simple confound. More surprising is that the model is confident that the direct effect of grandparents is to hurt their grandkids. The regression is not wrong. But a causal interpretation of that association would be.
+
+```{r}
+familySim <- familySim %>% 
+  mutate(cZ = (C - mean(C))/sd(C),
+         gZ = (G - mean(G))/sd(G),
+         pMid = ifelse(P > quantile(P, .45) & P < quantile(P, .65), TRUE, FALSE))
+
+ggplot(data = familySim)+
+  geom_point(aes(x = gZ, y = cZ, color = as.factor(U), fill = pMid), shape = 21)+
+  scale_color_manual(values = c("black", "blue"), labels = c("Bad Neighborhoods", "Good Neighborhoods"), name = "Unobserved Neighborhood")+
+  scale_fill_manual(values = c("white", "orange"), labels = c("Not Mid Parents", "Mid Parents"), name = "Parents Education Level")+
+  geom_smooth(data = . %>% filter(pMid), method = "lm", aes(x= gZ, y = cZ), se = FALSE, color = "orange")+
+  theme_minimal()+
+  labs(x = "Grandparents Effect", y = "Childerns Education", title = "Regression with Parents in 45th to 65th centiles")
+```
+
+So how does the negative association arise, when we condition on parents? Conditioning on parents is like looking within sub-populations of parents with similar education. So let’s try that. In Figure 6.5, I’ve highlighted in filled points those parents between the 45th and 60th centiles of education. There is nothing special of this range. It just makes the phenomenon easier to see. Now if we draw a regression line through only these points, regressing C on G, the slope is negative. There is the negative association that our multiple regression finds. But why does it exist?
+    
+It exists because, once we know P, learning G invisibly tells us about the neighborhood U, and U is associated with the outcome C. I know this is confusing. As I keep saying, if you are confused, it is only because you are paying attention. So consider two different parents with the same education level, say for example at the median 50th centile. One of these parents has a highly educated grandparent. The other has a poorly educated grandparent. The only probable way, in this example, for these parents to have the same education is if they live in different types of neighborhoods. We can’t see these neighborhood effects—we haven’t measured them, recall—but the influence of neighborhood is still transmitted to the children C. So for our mythical two parents with the same education, the one with the highly educated grandparent ends up with a less well educated child. The one with the less educated grandparent ends up with the better educated child. G predicts lower C.
