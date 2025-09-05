@@ -21,40 +21,6 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
-/* CSS for syntax highlighting */
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-div.sourceCode { margin: 1em 0; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
-}
-@media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
-}
-pre.numberSource code
-  { counter-reset: source-line 0; }
-pre.numberSource code > span
-  { position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-  { content: counter(source-line);
-    position: relative; left: -1em; text-align: right; vertical-align: baseline;
-    border: none; display: inline-block;
-    -webkit-touch-callout: none; -webkit-user-select: none;
-    -khtml-user-select: none; -moz-user-select: none;
-    -ms-user-select: none; user-select: none;
-    padding: 0 4px; width: 4em;
-  }
-pre.numberSource { margin-left: 3em;  padding-left: 4px; }
-div.sourceCode
-  {   }
-@media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
-}
 </style>
 
 
@@ -263,36 +229,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 class="anchored" data-anchor-id="exploratory-data-analysis">1. Exploratory Data Analysis</h2>
 <p>Understanding the data structure and relationships is critical before model specification. The !Kung dataset contains height, weight, age, and gender information that allows us to explore anthropometric relationships across different population subgroups.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create age-based subsets for targeted analysis</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>kHeight_adult <span class="ot">&lt;-</span> kHeight <span class="sc">%&gt;%</span></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(age <span class="sc">&gt;=</span> <span class="dv">18</span>)</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>kHeight_child <span class="ot">&lt;-</span> kHeight <span class="sc">%&gt;%</span></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(age <span class="sc">&lt;</span> <span class="dv">18</span>)</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Comprehensive visualization of height-weight relationships</span></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>p1 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(<span class="at">data =</span> kHeight, <span class="fu">aes</span>(<span class="at">x =</span> weight, <span class="at">y =</span> height, <span class="at">color =</span> <span class="fu">as.factor</span>(male))) <span class="sc">+</span></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> .<span class="dv">7</span>) <span class="sc">+</span></span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Weight (kg)"</span>, <span class="at">y =</span> <span class="st">"Height (cm)"</span>, </span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"!Kung Height vs Weight"</span>, <span class="at">subtitle =</span> <span class="st">"Full Population"</span>) <span class="sc">+</span></span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_discrete</span>(<span class="at">name =</span> <span class="st">"Gender"</span>, <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Female"</span>, <span class="st">"Male"</span>)) <span class="sc">+</span></span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>p2 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(<span class="at">data =</span> kHeight_adult, <span class="fu">aes</span>(<span class="at">x =</span> weight, <span class="at">y =</span> height, <span class="at">color =</span> <span class="fu">as.factor</span>(male))) <span class="sc">+</span></span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> .<span class="dv">7</span>) <span class="sc">+</span></span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Weight (kg)"</span>, <span class="at">y =</span> <span class="st">"Adult Height (cm)"</span>, </span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"Adult Population"</span>, <span class="at">subtitle =</span> <span class="st">"Age ≥ 18 years"</span>) <span class="sc">+</span></span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_discrete</span>(<span class="at">name =</span> <span class="st">"Gender"</span>, <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Female"</span>, <span class="st">"Male"</span>)) <span class="sc">+</span></span>
-<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span>
-<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>p3 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(<span class="at">data =</span> kHeight_child, <span class="fu">aes</span>(<span class="at">x =</span> weight, <span class="at">y =</span> height, <span class="at">color =</span> <span class="fu">as.factor</span>(male))) <span class="sc">+</span></span>
-<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> .<span class="dv">7</span>) <span class="sc">+</span></span>
-<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Weight (kg)"</span>, <span class="at">y =</span> <span class="st">"Child Height (cm)"</span>, </span>
-<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>       <span class="at">title =</span> <span class="st">"Pediatric Population"</span>, <span class="at">subtitle =</span> <span class="st">"Age &lt; 18 years"</span>) <span class="sc">+</span></span>
-<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_discrete</span>(<span class="at">name =</span> <span class="st">"Gender"</span>, <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Female"</span>, <span class="st">"Male"</span>)) <span class="sc">+</span></span>
-<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span>
-<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>p1 <span class="sc">/</span> (p2 <span class="sc">+</span> p3)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -342,23 +278,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="simple-linear-regression-height-weight" class="level3">
 <h3 class="anchored" data-anchor-id="simple-linear-regression-height-weight">3.2 Simple Linear Regression (Height ~ Weight)</h3>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Center weight for better interpretation and numerical stability</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>kHeight_adult <span class="ot">&lt;-</span> kHeight_adult <span class="sc">%&gt;%</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">weight_c =</span> weight <span class="sc">-</span> <span class="fu">mean</span>(weight))</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit linear model with weakly informative priors</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>b4<span class="fl">.3</span> <span class="ot">&lt;-</span> <span class="fu">brm</span>(<span class="at">data =</span> kHeight_adult, </span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>            <span class="at">family =</span> gaussian,</span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>            height <span class="sc">~</span> <span class="dv">1</span> <span class="sc">+</span> weight_c,</span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>            <span class="at">prior =</span> <span class="fu">c</span>(<span class="fu">prior</span>(<span class="fu">normal</span>(<span class="dv">178</span>, <span class="dv">100</span>), <span class="at">class =</span> Intercept),</span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>                      <span class="fu">prior</span>(<span class="fu">normal</span>(<span class="dv">0</span>, <span class="dv">10</span>), <span class="at">class =</span> b),</span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>                      <span class="fu">prior</span>(<span class="fu">uniform</span>(<span class="dv">0</span>, <span class="dv">50</span>), <span class="at">class =</span> sigma, <span class="at">ub =</span> <span class="dv">50</span>)),</span>
-<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>            <span class="at">iter =</span> <span class="dv">2000</span>, <span class="at">warmup =</span> <span class="dv">1000</span>, <span class="at">chains =</span> <span class="dv">4</span>, <span class="at">cores =</span> <span class="dv">4</span>,</span>
-<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>            <span class="at">seed =</span> <span class="dv">4</span>, <span class="at">backend =</span> <span class="st">"cmdstanr"</span>, <span class="at">silent =</span> <span class="dv">2</span>,</span>
-<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>            <span class="at">file =</span> <span class="st">"fits/b04.03"</span>)</span>
-<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Display model summary</span></span>
-<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(b4<span class="fl">.3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code> Family: gaussian 
   Links: mu = identity; sigma = identity 
@@ -383,10 +302,6 @@ scale reduction factor on split chains (at convergence, Rhat = 1).</code></pre>
 </div>
 <p><strong>Model Interpretation:</strong> - <strong>Intercept (154.60 cm):</strong> Expected height for average weight (!Kung adult) - <strong>Slope (0.90 cm/kg):</strong> Each additional kilogram associated with 0.90 cm increase in height - <strong>σ (5.07 cm):</strong> Residual standard deviation indicating model uncertainty</p>
 <div class="cell">
-<div class="cell-output cell-output-stderr">
-<pre><code>Warning: Using `size` aesthetic for lines was deprecated in ggplot2 3.4.0.
-ℹ Please use `linewidth` instead.</code></pre>
-</div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
