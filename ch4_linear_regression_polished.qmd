@@ -3,6 +3,12 @@ title: "ch4 Linear Regression Polished"
 author: "Jaden Earl"
 format: html
 editor: visual
+execute:
+  echo: false
+  warning: false
+  message: false
+  cache: true
+  cache.lazy: false
 ---
 
 
@@ -34,7 +40,7 @@ This chapter demonstrates my proficiency in Bayesian linear regression using **b
 - **Polynomial regression** (quadratic and cubic terms)
 - **Spline regression** (non-parametric smoothing)
 
-```{r setup, echo=FALSE, warning=FALSE, message=FALSE}
+```{r setup}
 # Suppress startup messages and warnings
 suppressPackageStartupMessages({
   library(rethinking)
@@ -62,7 +68,7 @@ suppressPackageStartupMessages({
 
 Understanding the data structure and relationships is critical before model specification. The !Kung dataset contains height, weight, age, and gender information that allows us to explore anthropometric relationships across different population subgroups.
 
-```{r eda-analysis, warning=FALSE, message=FALSE}
+```{r eda-analysis}
 # Create age-based subsets for targeted analysis
 kHeight_adult <- kHeight %>%
   filter(age >= 18)
@@ -107,7 +113,7 @@ p1 / (p2 + p3)
 
 Proper prior specification is crucial for Bayesian inference. I demonstrate both informative and weakly informative priors, showing their impact on inference.
 
-```{r prior-analysis, echo=FALSE, warning=FALSE, message=FALSE}
+```{r prior-analysis}
 # Visualize height prior distribution
 p_prior_mean <- ggplot(data = tibble(x = seq(from = 100, to = 250, by = .1)), 
        aes(x = x, y = dnorm(x, mean = 178, sd = 20))) +
@@ -141,7 +147,7 @@ p_prior_mean + p_prior_pred
 
 While MCMC is the standard for practical Bayesian computation, grid approximation provides intuitive understanding of posterior distributions.
 
-```{r grid-approximation, echo=FALSE}
+```{r grid-approximation}
 # Grid approximation for intercept-only model
 n <- 200
 d_grid <- crossing(mu = seq(from = 130, to = 180, length.out = n),
@@ -184,7 +190,7 @@ prior_plot + posterior_plot
 
 ### 3.1 Intercept-Only Model (Baseline)
 
-```{r intercept-model, echo=FALSE}
+```{r intercept-model}
 # Fit intercept-only model with proper priors
 b4.1 <- brm(data = kHeight_adult, 
             family = gaussian,
@@ -223,7 +229,7 @@ print(b4.3)
 - **Slope (0.90 cm/kg):** Each additional kilogram associated with 0.90 cm increase in height
 - **σ (5.07 cm):** Residual standard deviation indicating model uncertainty
 
-```{r linear-visualization, echo=FALSE}
+```{r linear-visualization}
 # Create prediction intervals for visualization
 weight_seq <- tibble(weight_c = seq(from = -18, to = 18, by = 1))
 
@@ -260,7 +266,7 @@ ggplot(data = kHeight_adult, aes(x = weight_c, y = height)) +
 
 For capturing non-linear relationships, polynomial terms allow flexible curve fitting while maintaining interpretability.
 
-```{r polynomial-models, echo=FALSE}
+```{r polynomial-models}
 # Standardize weight for polynomial terms
 kHeight <- kHeight %>%
   mutate(weight_s = (weight - mean(weight)) / sd(weight))
@@ -288,7 +294,7 @@ b4.6 <- brm(data = kHeight,
             file = "fits/b04.06")
 ```
 
-```{r polynomial-visualization, echo=FALSE}
+```{r polynomial-visualization}
 # Generate predictions for visualization
 weight_seq <- tibble(weight_s = seq(from = min(kHeight$weight_s) - 0.5 * sd(kHeight$weight_s),
                                     to = max(kHeight$weight_s) + 0.5 * sd(kHeight$weight_s), 
@@ -342,7 +348,7 @@ ggplot(data = kHeight, aes(x = weight_s, y = height)) +
 
 Splines provide maximum flexibility for capturing complex non-linear patterns without assuming specific functional forms. They are particularly valuable when the underlying relationship is expected to be smooth but potentially complex.
 
-```{r spline-model, echo=FALSE}
+```{r spline-model}
 # Fit B-spline model using brms smooth terms
 b4.8_smooth <- brm(
   data = kHeight,
@@ -364,7 +370,7 @@ b4.8_smooth <- brm(
 print(b4.8_smooth)
 ```
 
-```{r spline-visualization, echo=FALSE}
+```{r spline-visualization}
 # Generate predictions for spline visualization
 weight_seq_fine <- tibble(weight_s = seq(from = min(kHeight$weight_s) - 0.5,
                                          to = max(kHeight$weight_s) + 0.5, 
@@ -421,7 +427,7 @@ The cherry blossom dataset provides an ideal demonstration of spline utility bec
 
 This "wiggliness" makes it perfect for showcasing when and why splines outperform parametric approaches.
 
-```{r cherry-eda, echo=FALSE, warning=FALSE, message=FALSE}
+```{r cherry-eda}
 # Prepare cherry blossom data
 cherry_clean <- cherry %>%
   filter(!is.na(doy)) %>%
@@ -442,7 +448,7 @@ ggplot(cherry_clean, aes(x = year, y = doy)) +
 
 Different spline basis functions offer varying smoothness properties and computational characteristics. I demonstrate three key types commonly used in applied work:
 
-```{r spline-types, echo=FALSE}
+```{r spline-types}
 # Fit different spline types for comparison
 cherry_sample <- cherry_clean %>% 
   filter(year >= 1400) %>%  # Focus on period with good coverage
@@ -494,7 +500,7 @@ b_ps <- brm(
 )
 ```
 
-```{r spline-comparison-viz, echo=FALSE}
+```{r spline-comparison-viz}
 # Generate predictions for all spline types
 year_seq <- tibble(year_s = seq(from = min(cherry_sample$year_s),
                                 to = max(cherry_sample$year_s), 
@@ -547,7 +553,7 @@ ggplot(cherry_sample, aes(x = year_s * sd(cherry_clean$year) + mean(cherry_clean
 
 The number of knots (k) controls model flexibility - too few knots underfit complex patterns, while too many can lead to overfitting. I demonstrate systematic knot selection:
 
-```{r knot-comparison, echo=FALSE}
+```{r knot-comparison}
 # Fit models with different numbers of knots
 knot_values <- c(5, 10, 20, 30)
 
@@ -614,7 +620,7 @@ ggplot(cherry_sample, aes(x = year_s * sd(cherry_clean$year) + mean(cherry_clean
 
 ### 5.4 Model Selection Criteria
 
-```{r model-selection, echo=FALSE}
+```{r model-selection}
 # Create a summary table of model comparison metrics
 model_comparison <- tibble(
   `Spline Type` = c("Thin-plate", "Cubic Regression", "P-spline"),
@@ -637,7 +643,7 @@ knitr::kable(model_comparison,
 3. **Cross-validation** (LOOIC/WAIC) provides objective model selection criteria
 ## 6. Model Validation and Diagnostics
 
-```{r posterior-predictive, echo=FALSE}
+```{r posterior-predictive}
 # Generate posterior predictive samples for model validation
 pp_check(b4.3, ndraws = 100) +
   labs(title = "Posterior Predictive Check: Linear Model",
@@ -647,7 +653,7 @@ pp_check(b4.3, ndraws = 100) +
 
 ### 6.2 MCMC Diagnostics
 
-```{r mcmc-diagnostics, echo=FALSE}
+```{r mcmc-diagnostics}
 # Check chain convergence and mixing
 plot(b4.3, variable = c("b_Intercept", "b_weight_c", "sigma")) +
   theme_minimal()
