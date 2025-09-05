@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Chapter 6 Causal Terror – Statistical Rethinking Portfolio</title>
+<title>ch6_dag – Statistical Rethinking Portfolio</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -160,7 +160,7 @@ window.Quarto = {
   </li>  
   <li class="nav-item">
     <a class="nav-link" href="./ch5_multilinear.html"> 
-<span class="menu-text">Multi Regression - Intro to Causality</span></a>
+<span class="menu-text">Multi Regression</span></a>
   </li>  
   <li class="nav-item">
     <a class="nav-link active" href="./ch6_DAG.html" aria-current="page"> 
@@ -182,7 +182,8 @@ window.Quarto = {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#multicollinearity" id="toc-multicollinearity" class="nav-link active" data-scroll-target="#multicollinearity">Multicollinearity</a>
+  <li><a href="#causal-terror-intro" id="toc-causal-terror-intro" class="nav-link active" data-scroll-target="#causal-terror-intro">Causal Terror Intro</a></li>
+  <li><a href="#multicollinearity" id="toc-multicollinearity" class="nav-link" data-scroll-target="#multicollinearity">Multicollinearity</a>
   <ul class="collapse">
   <li><a href="#left-leg-predicts-height-but-right-leg-doesnt" id="toc-left-leg-predicts-height-but-right-leg-doesnt" class="nav-link" data-scroll-target="#left-leg-predicts-height-but-right-leg-doesnt">Left leg predicts height but right leg doesn’t?</a></li>
   <li><a href="#milk-example" id="toc-milk-example" class="nav-link" data-scroll-target="#milk-example">Milk Example</a></li>
@@ -193,31 +194,18 @@ window.Quarto = {
   <li><a href="#looking-at-the-dag" id="toc-looking-at-the-dag" class="nav-link" data-scroll-target="#looking-at-the-dag">Looking at the DAG</a></li>
   </ul></li>
   <li><a href="#collider-bias" id="toc-collider-bias" class="nav-link" data-scroll-target="#collider-bias">Collider Bias</a></li>
+  <li><a href="#the-haunted-dag" id="toc-the-haunted-dag" class="nav-link" data-scroll-target="#the-haunted-dag">The Haunted DAG</a></li>
   </ul>
 </nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default">
-<div class="quarto-title">
-<h1 class="title">Chapter 6 Causal Terror</h1>
-</div>
 
 
 
-<div class="quarto-title-meta">
-
-    
-  
-    
-  </div>
-  
-
-
-</header>
-
-
+<section id="causal-terror-intro" class="level2">
+<h2 class="anchored" data-anchor-id="causal-terror-intro">Causal Terror Intro</h2>
 <p>“The more likely it is to kill you, if true, the less likely it is to be true. The more boring the topic, the more rigorous the results. How could this widely believed negative correlation exist? There doesn’t seem to be any reason for studies of topics that people care about to produce less reliable results. Maybe popular topics attract more and worse researchers, like flies drawn to the smell of honey? Actually all that is necessary for such a negative correlation to arise is that peer reviewers care about both newsworthiness and trustworthiness.”</p>
 <div class="cell">
 <div class="cell-output-display">
@@ -229,6 +217,7 @@ window.Quarto = {
 </div>
 </div>
 <p>Multiple regression is plagued with “paradoxes” that happen when we condition (like conditioning on publication status) on some variables in our regression. In this chapter we’ll go over three problems with regressing on additional variables: multicollinearity, post-treatment bias, and collider bias.</p>
+</section>
 <section id="multicollinearity" class="level2">
 <h2 class="anchored" data-anchor-id="multicollinearity">Multicollinearity</h2>
 <p>Multicollinearity means very strong correlation between two or more predictor variables. The consequence of it is that the posterior distribution will seem to suggest that none of the variables is reliably associated with the outcome, even if all of the variables are in reality strongly associated with the outcome. In fact, there is nothing wrong with multicollinearity. The model will work fine for prediction, it just frustrates most peoples intuitive understanding of what multi regression does.</p>
@@ -238,7 +227,7 @@ window.Quarto = {
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-2-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-2-1.png" class="img-fluid figure-img" width="768"></p>
 </figure>
 </div>
 </div>
@@ -250,21 +239,14 @@ window.Quarto = {
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid figure-img" width="768"></p>
 </figure>
 </div>
 </div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-3-2.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-3-3.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-3-2.png" class="img-fluid figure-img" width="768"></p>
 </figure>
 </div>
 </div>
@@ -281,35 +263,6 @@ window.Quarto = {
 <h3 class="anchored" data-anchor-id="milk-example">Milk Example</h3>
 <p>Using the milk primate data from the last chapter</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>milk <span class="ot">&lt;-</span> milk <span class="sc">%&gt;%</span> </span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">kcal_z =</span> (kcal.per.g <span class="sc">-</span> <span class="fu">mean</span>(kcal.per.g))<span class="sc">/</span><span class="fu">sd</span>(kcal.per.g),</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>         <span class="at">fat_z =</span> (perc.fat <span class="sc">-</span> <span class="fu">mean</span>(perc.fat))<span class="sc">/</span><span class="fu">sd</span>(perc.fat),</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>         <span class="at">lactose_z =</span> (perc.lactose <span class="sc">-</span> <span class="fu">mean</span>(perc.lactose))<span class="sc">/</span><span class="fu">sd</span>(perc.lactose))</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>b6<span class="fl">.1</span> <span class="ot">&lt;-</span> <span class="fu">brm</span>(<span class="at">data =</span> milk,</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>            <span class="at">family =</span> gaussian,</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>            kcal_z <span class="sc">~</span> <span class="dv">1</span> <span class="sc">+</span> fat_z,</span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>            <span class="at">prior =</span> <span class="fu">c</span>(</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>              <span class="fu">prior</span>(<span class="fu">normal</span>(<span class="dv">0</span>, <span class="fl">0.2</span>), <span class="at">class =</span> Intercept),</span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>              <span class="fu">prior</span>(<span class="fu">normal</span>(<span class="dv">0</span>, <span class="fl">0.5</span>), <span class="at">class =</span> b),</span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>              <span class="fu">prior</span>(<span class="fu">exponential</span>(<span class="dv">1</span>), <span class="at">class =</span> sigma)</span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>            ),</span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>            <span class="at">iter =</span> <span class="dv">2000</span>, <span class="at">warmup =</span> <span class="dv">500</span>, <span class="at">cores =</span> <span class="dv">4</span>, <span class="at">seed =</span> <span class="dv">5</span>,</span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>            <span class="at">backend =</span> <span class="st">"cmdstanr"</span>, <span class="at">silent =</span> <span class="dv">2</span>, <span class="at">file =</span> <span class="st">"fits/b06.1"</span>)</span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>b6<span class="fl">.1</span>b <span class="ot">&lt;-</span> <span class="fu">brm</span>(<span class="at">data =</span> milk,</span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>            <span class="at">family =</span> gaussian,</span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>            kcal_z <span class="sc">~</span> <span class="dv">1</span> <span class="sc">+</span> lactose_z,</span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>            <span class="at">prior =</span> <span class="fu">c</span>(</span>
-<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>              <span class="fu">prior</span>(<span class="fu">normal</span>(<span class="dv">0</span>, <span class="fl">0.2</span>), <span class="at">class =</span> Intercept),</span>
-<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>              <span class="fu">prior</span>(<span class="fu">normal</span>(<span class="dv">0</span>, <span class="fl">0.5</span>), <span class="at">class =</span> b),</span>
-<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>              <span class="fu">prior</span>(<span class="fu">exponential</span>(<span class="dv">1</span>), <span class="at">class =</span> sigma)</span>
-<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>            ),</span>
-<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>            <span class="at">iter =</span> <span class="dv">2000</span>, <span class="at">warmup =</span> <span class="dv">500</span>, <span class="at">cores =</span> <span class="dv">4</span>, <span class="at">seed =</span> <span class="dv">5</span>,</span>
-<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>            <span class="at">backend =</span> <span class="st">"cmdstanr"</span>, <span class="at">silent =</span> <span class="dv">2</span>, <span class="at">file =</span> <span class="st">"fits/b06.1b"</span>)</span>
-<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a><span class="fu">posterior_summary</span>(b6<span class="fl">.1</span>)[<span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>, ] <span class="sc">%&gt;%</span> <span class="fu">round</span>(<span class="at">digits =</span> <span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>            Estimate Est.Error   Q2.5 Q97.5
 b_Intercept    0.001     0.083 -0.162 0.165
@@ -317,7 +270,6 @@ b_fat_z        0.856     0.090  0.671 1.032
 sigma          0.486     0.068  0.374 0.642
 Intercept      0.001     0.083 -0.162 0.165</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">posterior_summary</span>(b6<span class="fl">.1</span>b)[<span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>, ] <span class="sc">%&gt;%</span> <span class="fu">round</span>(<span class="at">digits =</span> <span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>            Estimate Est.Error   Q2.5  Q97.5
 b_Intercept    0.000     0.071 -0.144  0.140
@@ -330,7 +282,7 @@ Intercept      0.000     0.071 -0.144  0.140</code></pre>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid figure-img" width="768"></p>
 </figure>
 </div>
 </div>
@@ -353,7 +305,7 @@ sigma          0.414     0.060  0.315  0.550</code></pre>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid figure-img" width="768"></p>
 </figure>
 </div>
 </div>
@@ -371,20 +323,20 @@ sigma          0.414     0.060  0.315  0.550</code></pre>
 <p><span class="math display">\[\mu_i = \text{Initial Height}_i \times p \]</span> If p = 1, the plant hasn’t changed at all from time t = 0 to time t = 1. If p = 2, it has doubled in height. So if we center our prior for p on 1, that implies an expectation of no change in height.</p>
 <p><span class="math display">\[ p \sim \text{Log-Normal(0,  0.25)}\]</span></p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>b6<span class="fl">.2</span> <span class="ot">&lt;-</span> <span class="fu">brm</span>(</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> exp_data,</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">family =</span> <span class="fu">gaussian</span>(),</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bf</span>(final_height <span class="sc">~</span> initial_height <span class="sc">*</span> p,</span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>     p <span class="sc">~</span> <span class="dv">1</span>,  <span class="co"># p gets its own linear predictor</span></span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>     <span class="at">nl =</span> <span class="cn">TRUE</span>),  <span class="co"># nonlinear model</span></span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">prior =</span> <span class="fu">c</span>(</span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">prior</span>(<span class="fu">lognormal</span>(<span class="dv">0</span>, <span class="fl">0.25</span>), <span class="at">nlpar =</span> p, <span class="at">lb =</span> <span class="dv">0</span>),</span>
-<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">prior</span>(<span class="fu">exponential</span>(<span class="dv">1</span>), <span class="at">class =</span> sigma)</span>
-<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>  ),</span>
-<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">chains =</span> <span class="dv">4</span>, <span class="at">iter =</span> <span class="dv">2000</span>, <span class="at">warmup =</span> <span class="dv">500</span>, <span class="at">seed =</span> <span class="dv">5</span>,</span>
-<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">backend =</span> <span class="st">"cmdstanr"</span>, <span class="at">silent =</span> <span class="dv">2</span>, <span class="at">file =</span> <span class="st">"fits/b0.6.2b"</span>)</span>
-<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="fu">posterior_summary</span>(b6<span class="fl">.2</span>)[<span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>,] <span class="sc">%&gt;%</span> <span class="fu">round</span>(<span class="at">digits =</span> <span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>b6<span class="fl">.2</span> <span class="ot">&lt;-</span> <span class="fu">brm</span>(</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> exp_data,</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">family =</span> <span class="fu">gaussian</span>(),</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bf</span>(final_height <span class="sc">~</span> initial_height <span class="sc">*</span> p,</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>     p <span class="sc">~</span> <span class="dv">1</span>,  <span class="co"># p gets its own linear predictor</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>     <span class="at">nl =</span> <span class="cn">TRUE</span>),  <span class="co"># nonlinear model</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">prior =</span> <span class="fu">c</span>(</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">prior</span>(<span class="fu">lognormal</span>(<span class="dv">0</span>, <span class="fl">0.25</span>), <span class="at">nlpar =</span> p, <span class="at">lb =</span> <span class="dv">0</span>),</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">prior</span>(<span class="fu">exponential</span>(<span class="dv">1</span>), <span class="at">class =</span> sigma)</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">chains =</span> <span class="dv">4</span>, <span class="at">iter =</span> <span class="dv">2000</span>, <span class="at">warmup =</span> <span class="dv">500</span>, <span class="at">seed =</span> <span class="dv">5</span>,</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">backend =</span> <span class="st">"cmdstanr"</span>, <span class="at">silent =</span> <span class="dv">2</span>, <span class="at">file =</span> <span class="st">"fits/b0.6.2b"</span>)</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a><span class="fu">posterior_summary</span>(b6<span class="fl">.2</span>)[<span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>,] <span class="sc">%&gt;%</span> <span class="fu">round</span>(<span class="at">digits =</span> <span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>              Estimate Est.Error  Q2.5 Q97.5
 b_p_Intercept    1.412     0.018 1.377 1.446
@@ -432,7 +384,7 @@ sigma            1.728     0.126 1.512 2.000</code></pre>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid figure-img" width="768"></p>
 </figure>
 </div>
 </div>
@@ -443,7 +395,109 @@ sigma            1.728     0.126 1.512 2.000</code></pre>
 <section id="collider-bias" class="level2">
 <h2 class="anchored" data-anchor-id="collider-bias">Collider Bias</h2>
 <p>Going back to our intro on the the most newsworthy science papers being the less trustworthy we can represent the causal model like this.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-13-1.png" class="img-fluid figure-img" width="768"></p>
+</figure>
+</div>
+</div>
+</div>
 <p>This is a collider structure, trustworthiness and newsworthiness are statistically associated when looking at S but they are not causally associated. Once you learn that a paper has been selected (S), then learning its trustworthiness (T) also provides information about its newsworthiness (N). Otherwise it wouldn’t have been funded. Why? Because if, for example, a selected proposal has low trustworthiness, then it must have high newsworthiness.</p>
+<p>We can make another collider causal model by thinking that both Happiness levels and Age cause one to get married.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-14-1.png" class="img-fluid figure-img" width="768"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Even though there is no causal association between happiness and age, if we condition on marriage (i.e.&nbsp;include it as a predictor in a regression) then we will have a statistical association between age and happiness.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-15-1.png" class="img-fluid figure-img" width="960"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Consider only the blue points, the married people. Among only the blue points, older individuals have lower average happiness. This is because more people get marriage at time goes on, so the mean happiness among married people approaches the population average of zero. Now consider only the open points, the unmarried people. Here it is also true that mean happiness declines with age. This is because happier individuals migrate over time into the married sub-population. So in both the married and unmarried sub-populations, there is a negative relationship between age and happiness. But in neither sub-population does this accurately reflect causation.</p>
+<p>If we came across this data and want to ask whether age is related to happiness. You don’t know the true causal model. But you reason, that marriage status might be an important confound. If married people are more or less happy, on average, then you need to condition on marriage status in order to infer the relationship between age and happiness.</p>
+<p>You’re regression model would look like:</p>
+<p><span class="math display">\[\mu_\text{Happiness for individual i} = \alpha_\text{Marriage Status Intercept} + \beta_AA_i\]</span></p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid figure-img" width="960"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The model is quite sure that age is associated with happiness. What if we omit marital status</p>
+<p><span class="math display">\[ \mu_\text{Happiness for individual i} = \alpha +  \beta_A\text{Age}_i \]</span></p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-17-1.png" class="img-fluid figure-img" width="960"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>This exactly what we’d expect to see when we condition on a collider, if we conditioned on it we’d see a spurious associateion between the two causes.</p>
+</section>
+<section id="the-haunted-dag" class="level2">
+<h2 class="anchored" data-anchor-id="the-haunted-dag">The Haunted DAG</h2>
+<p>Collider bias can arise from unobserved variables. Suppose we want to find the direct influence of both parents (<span class="math inline">\(P\)</span>) and grandparents (<span class="math inline">\(G\)</span>) on the educational achievements of children (<span class="math inline">\(C\)</span>). Since grandparents also presumably influence their own children’s education there is an arrow <span class="math inline">\(G \rightarrow P\)</span>.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-18-1.png" class="img-fluid figure-img" width="288"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>But suppose there are unmeasured, common influences on parents and their children, such as neighborhoods, that are not shared by grandparents (who live on the south coast of Spain now). Then our DAG becomes haunted by the unobserved U:</p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-19-1.png" class="img-fluid figure-img" width="384"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Now <span class="math inline">\(P\)</span> is a common consequence of <span class="math inline">\(G\)</span> and <span class="math inline">\(U\)</span>, so if we condition on <span class="math inline">\(P\)</span>, it will bias inference about <span class="math inline">\(G \rightarrow C\)</span>, even if we never get to measure <span class="math inline">\(U\)</span>. This isn’t immediately obvious, so let’s crawl through a quantitative example.</p>
+<p>For this example we’re going to say that Grandparents <span class="math inline">\(G\)</span> have no direct effect on grandkids <span class="math inline">\(C\)</span>. The example doesn’t depend upon that effect being exactly zero, but it will make the lesson clearer.</p>
+<p>Now what happens when we try to infer the influence of grandparents? Since some of the total effect of grandparents passes through parents, we realize we need to control for parents. Our regression looks like</p>
+<p><span class="math display">\[ \mu_\text{children} = \alpha + \beta_G\text{Grandparents} + \beta_P\text{Parents} \]</span></p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-21-1.png" class="img-fluid figure-img" width="960"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The inferred effect of parents looks too big, almost twice as large as it should be. That isn’t surprising. Some of the correlation between <span class="math inline">\(P\)</span> and <span class="math inline">\(C\)</span> is due to <span class="math inline">\(U\)</span>, and the model doesn’t know about <span class="math inline">\(U\)</span>. That’s a simple confound. More surprising is that the model is confident that the direct effect of grandparents is to hurt their grandkids. The regression is not wrong. But a causal interpretation of that association would be.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-22-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>So how does the negative association arise, when we condition on parents? Conditioning on parents is like looking within sub-populations of parents with similar education. So let’s try that. In Figure 6.5, I’ve highlighted in filled points those parents between the 45th and 60th centiles of education. There is nothing special of this range. It just makes the phenomenon easier to see. Now if we draw a regression line through only these points, regressing C on G, the slope is negative. There is the negative association that our multiple regression finds. But why does it exist?</p>
+<p>It exists because, once we know P, learning G invisibly tells us about the neighborhood U, and U is associated with the outcome C. I know this is confusing. As I keep saying, if you are confused, it is only because you are paying attention. So consider two different parents with the same education level, say for example at the median 50th centile. One of these parents has a highly educated grandparent. The other has a poorly educated grandparent. The only probable way, in this example, for these parents to have the same education is if they live in different types of neighborhoods. We can’t see these neighborhood effects—we haven’t measured them, recall—but the influence of neighborhood is still transmitted to the children C. So for our mythical two parents with the same education, the one with the highly educated grandparent ends up with a less well educated child. The one with the less educated grandparent ends up with the better educated child. G predicts lower C.</p>
 
 
 </section>
