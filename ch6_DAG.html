@@ -195,6 +195,10 @@ window.Quarto = {
   </ul></li>
   <li><a href="#collider-bias" id="toc-collider-bias" class="nav-link" data-scroll-target="#collider-bias">Collider Bias</a></li>
   <li><a href="#the-haunted-dag" id="toc-the-haunted-dag" class="nav-link" data-scroll-target="#the-haunted-dag">The Haunted DAG</a></li>
+  <li><a href="#confronting-confounding" id="toc-confronting-confounding" class="nav-link" data-scroll-target="#confronting-confounding">Confronting Confounding</a>
+  <ul class="collapse">
+  <li><a href="#four-fundamental-dags" id="toc-four-fundamental-dags" class="nav-link" data-scroll-target="#four-fundamental-dags">Four Fundamental DAGS</a></li>
+  </ul></li>
   </ul>
 </nav>
     </div>
@@ -262,39 +266,43 @@ window.Quarto = {
 <section id="milk-example" class="level3">
 <h3 class="anchored" data-anchor-id="milk-example">Milk Example</h3>
 <p>Using the milk primate data from the last chapter</p>
+<p><span class="math display">\[\mu_\text{milk} = \alpha + \beta_F\text{Fat Percent}_i\]</span></p>
 <div class="cell">
-<div class="cell-output cell-output-stdout">
-<pre><code>            Estimate Est.Error   Q2.5 Q97.5
-b_Intercept    0.001     0.083 -0.162 0.165
-b_fat_z        0.856     0.090  0.671 1.032
-sigma          0.486     0.068  0.374 0.642
-Intercept      0.001     0.083 -0.162 0.165</code></pre>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-4-1.png" class="img-fluid figure-img" width="960"></p>
+</figure>
 </div>
-<div class="cell-output cell-output-stdout">
-<pre><code>            Estimate Est.Error   Q2.5  Q97.5
-b_Intercept    0.000     0.071 -0.144  0.140
-b_lactose_z   -0.899     0.076 -1.047 -0.750
-sigma          0.412     0.060  0.316  0.546
-Intercept      0.000     0.071 -0.144  0.140</code></pre>
+</div>
+</div>
+<p><span class="math display">\[\mu_\text{milk} = \alpha + \beta_L\text{Lactose Percent}_i\]</span></p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid figure-img" width="960"></p>
+</figure>
+</div>
 </div>
 </div>
 <div class="cell">
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid figure-img" width="768"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid figure-img" width="768"></p>
 </figure>
 </div>
 </div>
 </div>
 <p>The posterior distributions for <span class="math inline">\(\beta_\text{fat}\)</span> and <span class="math inline">\(\beta_\text{lactose}\)</span> are essentially mirror images of one another. The posterior mean of <span class="math inline">\(\beta_\text{fat}\)</span> is as positive as the mean of <span class="math inline">\(\beta_\text{lactose}\)</span> is negative. Both are narrow posterior distributions that lie almost entirely on one side or the other of zero. Given the strong associ- ation of each predictor with the outcome, we might conclude that both variables are reliable predictors of total energy in milk, across species. The more fat, the more kilocalories in the milk. The more lactose, the fewer kilocalories in milk. But watch what happens when we place both predictor variables in the same regression model:</p>
 <div class="cell">
-<div class="cell-output cell-output-stdout">
-<pre><code>            Estimate Est.Error   Q2.5  Q97.5
-b_Intercept    0.001     0.073 -0.142  0.146
-b_fat_z        0.249     0.191 -0.118  0.639
-b_lactose_z   -0.670     0.192 -1.042 -0.278
-sigma          0.414     0.060  0.315  0.550</code></pre>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid figure-img" width="960"></p>
+</figure>
+</div>
 </div>
 </div>
 <p>Now the posterior means of both <span class="math inline">\(\beta_\text{fat}\)</span> and <span class="math inline">\(\beta_\text{lactose}\)</span> are closer to zero. And the standard deviations for both parameters are twice as large as in the bivariate models.</p>
@@ -305,7 +313,7 @@ sigma          0.414     0.060  0.315  0.550</code></pre>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid figure-img" width="768"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid figure-img" width="768"></p>
 </figure>
 </div>
 </div>
@@ -323,20 +331,20 @@ sigma          0.414     0.060  0.315  0.550</code></pre>
 <p><span class="math display">\[\mu_i = \text{Initial Height}_i \times p \]</span> If p = 1, the plant hasn’t changed at all from time t = 0 to time t = 1. If p = 2, it has doubled in height. So if we center our prior for p on 1, that implies an expectation of no change in height.</p>
 <p><span class="math display">\[ p \sim \text{Log-Normal(0,  0.25)}\]</span></p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>b6<span class="fl">.2</span> <span class="ot">&lt;-</span> <span class="fu">brm</span>(</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> exp_data,</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">family =</span> <span class="fu">gaussian</span>(),</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bf</span>(final_height <span class="sc">~</span> initial_height <span class="sc">*</span> p,</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>     p <span class="sc">~</span> <span class="dv">1</span>,  <span class="co"># p gets its own linear predictor</span></span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>     <span class="at">nl =</span> <span class="cn">TRUE</span>),  <span class="co"># nonlinear model</span></span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">prior =</span> <span class="fu">c</span>(</span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">prior</span>(<span class="fu">lognormal</span>(<span class="dv">0</span>, <span class="fl">0.25</span>), <span class="at">nlpar =</span> p, <span class="at">lb =</span> <span class="dv">0</span>),</span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">prior</span>(<span class="fu">exponential</span>(<span class="dv">1</span>), <span class="at">class =</span> sigma)</span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>  ),</span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">chains =</span> <span class="dv">4</span>, <span class="at">iter =</span> <span class="dv">2000</span>, <span class="at">warmup =</span> <span class="dv">500</span>, <span class="at">seed =</span> <span class="dv">5</span>,</span>
-<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">backend =</span> <span class="st">"cmdstanr"</span>, <span class="at">silent =</span> <span class="dv">2</span>, <span class="at">file =</span> <span class="st">"fits/b0.6.2b"</span>)</span>
-<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a><span class="fu">posterior_summary</span>(b6<span class="fl">.2</span>)[<span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>,] <span class="sc">%&gt;%</span> <span class="fu">round</span>(<span class="at">digits =</span> <span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>b6<span class="fl">.2</span> <span class="ot">&lt;-</span> <span class="fu">brm</span>(</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> exp_data,</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">family =</span> <span class="fu">gaussian</span>(),</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bf</span>(final_height <span class="sc">~</span> initial_height <span class="sc">*</span> p,</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>     p <span class="sc">~</span> <span class="dv">1</span>,  <span class="co"># p gets its own linear predictor</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>     <span class="at">nl =</span> <span class="cn">TRUE</span>),  <span class="co"># nonlinear model</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">prior =</span> <span class="fu">c</span>(</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">prior</span>(<span class="fu">lognormal</span>(<span class="dv">0</span>, <span class="fl">0.25</span>), <span class="at">nlpar =</span> p, <span class="at">lb =</span> <span class="dv">0</span>),</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">prior</span>(<span class="fu">exponential</span>(<span class="dv">1</span>), <span class="at">class =</span> sigma)</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">chains =</span> <span class="dv">4</span>, <span class="at">iter =</span> <span class="dv">2000</span>, <span class="at">warmup =</span> <span class="dv">500</span>, <span class="at">seed =</span> <span class="dv">5</span>,</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">backend =</span> <span class="st">"cmdstanr"</span>, <span class="at">silent =</span> <span class="dv">2</span>, <span class="at">file =</span> <span class="st">"fits/b0.6.2b"</span>)</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="fu">posterior_summary</span>(b6<span class="fl">.2</span>)[<span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>,] <span class="sc">%&gt;%</span> <span class="fu">round</span>(<span class="at">digits =</span> <span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>              Estimate Est.Error  Q2.5 Q97.5
 b_p_Intercept    1.412     0.018 1.377 1.446
@@ -354,12 +362,12 @@ sigma            1.780     0.125 1.552 2.051</code></pre>
 <p><span class="math display">\[ \sigma \sim \text{Exponential(1)} \]</span></p>
 <p>The proportion of growth <span class="math inline">\(p\)</span> is now a function of the predictor variables</p>
 <div class="cell">
-<div class="cell-output cell-output-stdout">
-<pre><code>              Estimate Est.Error   Q2.5  Q97.5
-b_p_Intercept    1.499     0.026  1.448  1.550
-b_p_treatment   -0.010     0.030 -0.070  0.050
-b_p_fungus      -0.261     0.033 -0.326 -0.197
-sigma            1.342     0.096  1.167  1.545</code></pre>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-11-1.png" class="img-fluid figure-img" width="960"></p>
+</figure>
+</div>
 </div>
 </div>
 <p>The <span class="math inline">\(\alpha\)</span> parameter is the same as p before. And it has nearly the same posterior. The marginal posterior for <span class="math inline">\(\beta_\text{Treatment}\)</span>, the effect of treatment, is solidly zero, with a tight interval. The problem is that fungus is mostly a consequence of treatment. To actually answer our research question of the effect of treatment we must omit the fungus variable.</p>
@@ -369,11 +377,12 @@ sigma            1.342     0.096  1.167  1.545</code></pre>
 <p><span class="math display">\[ p = \alpha + \beta_T\text{Treatment}_i\]</span></p>
 <p>The rest of the model is the same as above</p>
 <div class="cell">
-<div class="cell-output cell-output-stdout">
-<pre><code>              Estimate Est.Error  Q2.5 Q97.5
-b_p_Intercept    1.360     0.025 1.310 1.409
-b_p_treatment    0.101     0.036 0.031 0.171
-sigma            1.728     0.126 1.512 2.000</code></pre>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid figure-img" width="960"></p>
+</figure>
+</div>
 </div>
 </div>
 <p>Here our treatment effect does solidly increase the height of the plant by 3% - 17%.</p>
@@ -384,7 +393,7 @@ sigma            1.728     0.126 1.512 2.000</code></pre>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid figure-img" width="768"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-13-1.png" class="img-fluid figure-img" width="768"></p>
 </figure>
 </div>
 </div>
@@ -399,7 +408,7 @@ sigma            1.728     0.126 1.512 2.000</code></pre>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-13-1.png" class="img-fluid figure-img" width="768"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-14-1.png" class="img-fluid figure-img" width="768"></p>
 </figure>
 </div>
 </div>
@@ -410,7 +419,7 @@ sigma            1.728     0.126 1.512 2.000</code></pre>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-14-1.png" class="img-fluid figure-img" width="768"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-15-1.png" class="img-fluid figure-img" width="768"></p>
 </figure>
 </div>
 </div>
@@ -420,7 +429,7 @@ sigma            1.728     0.126 1.512 2.000</code></pre>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-15-1.png" class="img-fluid figure-img" width="960"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid figure-img" width="960"></p>
 </figure>
 </div>
 </div>
@@ -433,7 +442,7 @@ sigma            1.728     0.126 1.512 2.000</code></pre>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid figure-img" width="960"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-17-1.png" class="img-fluid figure-img" width="960"></p>
 </figure>
 </div>
 </div>
@@ -444,7 +453,7 @@ sigma            1.728     0.126 1.512 2.000</code></pre>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-17-1.png" class="img-fluid figure-img" width="960"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-18-1.png" class="img-fluid figure-img" width="960"></p>
 </figure>
 </div>
 </div>
@@ -458,7 +467,7 @@ sigma            1.728     0.126 1.512 2.000</code></pre>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-18-1.png" class="img-fluid figure-img" width="288"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-19-1.png" class="img-fluid figure-img" width="288"></p>
 </figure>
 </div>
 </div>
@@ -468,7 +477,7 @@ sigma            1.728     0.126 1.512 2.000</code></pre>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-19-1.png" class="img-fluid figure-img" width="384"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-20-1.png" class="img-fluid figure-img" width="384"></p>
 </figure>
 </div>
 </div>
@@ -481,7 +490,7 @@ sigma            1.728     0.126 1.512 2.000</code></pre>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-21-1.png" class="img-fluid figure-img" width="960"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-22-1.png" class="img-fluid figure-img" width="960"></p>
 </figure>
 </div>
 </div>
@@ -491,15 +500,84 @@ sigma            1.728     0.126 1.512 2.000</code></pre>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-22-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-23-1.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
 </div>
-<p>So how does the negative association arise, when we condition on parents? Conditioning on parents is like looking within sub-populations of parents with similar education. So let’s try that. In Figure 6.5, I’ve highlighted in filled points those parents between the 45th and 60th centiles of education. There is nothing special of this range. It just makes the phenomenon easier to see. Now if we draw a regression line through only these points, regressing C on G, the slope is negative. There is the negative association that our multiple regression finds. But why does it exist?</p>
-<p>It exists because, once we know P, learning G invisibly tells us about the neighborhood U, and U is associated with the outcome C. I know this is confusing. As I keep saying, if you are confused, it is only because you are paying attention. So consider two different parents with the same education level, say for example at the median 50th centile. One of these parents has a highly educated grandparent. The other has a poorly educated grandparent. The only probable way, in this example, for these parents to have the same education is if they live in different types of neighborhoods. We can’t see these neighborhood effects—we haven’t measured them, recall—but the influence of neighborhood is still transmitted to the children C. So for our mythical two parents with the same education, the one with the highly educated grandparent ends up with a less well educated child. The one with the less educated grandparent ends up with the better educated child. G predicts lower C.</p>
+<p>So how does the negative association arise, when we condition on parents? Conditioning on parents is like looking within sub-populations of parents with similar education. So let’s try that. In Figure 6.5, I’ve highlighted in filled points those parents between the 45th and 60th centiles of education. There is nothing special of this range. It just makes the phenomenon easier to see. Now if we draw a regression line through only these points, regressing <span class="math inline">\(C\)</span> on <span class="math inline">\(G\)</span>, the slope is negative. There is the negative association that our multiple regression finds. But why does it exist?</p>
+<p>It exists because, once we know <span class="math inline">\(P\)</span>, learning <span class="math inline">\(G\)</span> invisibly tells us about the neighborhood <span class="math inline">\(U\)</span>, and <span class="math inline">\(U\)</span> is associated with the outcome <span class="math inline">\(C\)</span>. I know this is confusing. As I keep saying, if you are confused, it is only because you are paying attention. So consider two different parents with the same education level, say for example at the median 50th centile. One of these parents has a highly educated grandparent. The other has a poorly educated grandparent. The only probable way, in this example, for these parents to have the same education is if they live in different types of neighborhoods. We can’t see these neighborhood effects—we haven’t measured them, recall—but the influence of neighborhood is still transmitted to the children <span class="math inline">\(C\)</span>. So for our mythical two parents with the same education, the one with the highly educated grandparent ends up with a less well educated child. The one with the less educated grandparent ends up with the better educated child. <span class="math inline">\(G\)</span> predicts lower <span class="math inline">\(C\)</span>.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-24-1.png" class="img-fluid figure-img" width="960"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>And these are the slopes that we simulated!</p>
+</section>
+<section id="confronting-confounding" class="level2">
+<h2 class="anchored" data-anchor-id="confronting-confounding">Confronting Confounding</h2>
+<p>Cofounding is when the association between an outcome <span class="math inline">\(Y\)</span> and a predictor <span class="math inline">\(X\)</span> is not the same if we had experimentally determined the values of <span class="math inline">\(X\)</span>. For example if we wanted to see if there was an association between education <span class="math inline">\(E\)</span> and wages <span class="math inline">\(W\)</span>. There are many uobserved variables <span class="math inline">\(U\)</span> which influence both <span class="math inline">\(E\)</span> and <span class="math inline">\(W\)</span>, like where they live, who there parents are, and who are their friends.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-25-1.png" class="img-fluid figure-img" width="288"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>If we regress <span class="math inline">\(W\)</span> on <span class="math inline">\(E\)</span> the estimate of the causal effect will be confounded by <span class="math inline">\(U\)</span>. It is confounded, because there are two paths connecting <span class="math inline">\(E\)</span> and <span class="math inline">\(W\)</span>: (1) <span class="math inline">\(E \rightarrow W\)</span> and (2) <span class="math inline">\(E \leftarrow U \rightarrow W\)</span>. A “path” here just means any series of variables you could walk through to get from one variable to another, ignoring the directions of the arrows. Both of these paths create a statistical association between <span class="math inline">\(E\)</span> and <span class="math inline">\(W\)</span>. But only the first path is causal. The second path is non-causal. Why? Because if only the second path existed, and we changed <span class="math inline">\(E\)</span>, it would not change <span class="math inline">\(W\)</span>. Any causal influence of <span class="math inline">\(E\)</span> on <span class="math inline">\(W\)</span> operates only on the first path.</p>
+<p>We normally address this by running an experiment where we assign the education level at random. This cuts off the influence of <span class="math inline">\(U\)</span> on <span class="math inline">\(E\)</span>:</p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-26-1.png" class="img-fluid figure-img" width="288"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-27-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<section id="four-fundamental-dags" class="level3">
+<h3 class="anchored" data-anchor-id="four-fundamental-dags">Four Fundamental DAGS</h3>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-28-1.png" class="img-fluid figure-img" width="960"></p>
+</figure>
+</div>
+</div>
+</div>
+<ul>
+<li><ol type="1">
+<li>The first type of relation is the one we worked with just above,a fork:<span class="math inline">\(X /leftarrow Z \rightarrow Y\)</span>. This is the classic confounder. In a fork, some variable <span class="math inline">\(Z\)</span> is a common cause of <span class="math inline">\(X\)</span> and <span class="math inline">\(Y\)</span>, generating a correlation between them. If we condition on <span class="math inline">\(Z\)</span>, then learning <span class="math inline">\(X\)</span> tells us nothing about <span class="math inline">\(Y\)</span>. <span class="math inline">\(X\)</span> and <span class="math inline">\(Y\)</span> are independent, conditional on <span class="math inline">\(Z\)</span>.</li>
+</ol></li>
+<li><ol start="2" type="1">
+<li>The second type of relation is a pipe: <span class="math inline">\(X \rightarrow Z \rightarrow Y\)</span>. We saw this when we discussed the plant growth example and post-treatment bias: The treatment X influences fungus <span class="math inline">\(Z\)</span> which influences growth <span class="math inline">\(Y\)</span>. If we condition on <span class="math inline">\(Z\)</span> now, we also block the path from <span class="math inline">\(X\)</span> to <span class="math inline">\(Y\)</span>. So in both a fork and a pipe, conditioning of the middle variable blocks the path.</li>
+</ol></li>
+<li><ol start="3" type="1">
+<li>The third type of relation is a collider: <span class="math inline">\(X \rightarrow Z \leftarrow Y\)</span>. You met colliders earlier in this chapter. Unlike the other two types of relations, in a collider there is no association between <span class="math inline">\(X\)</span> and <span class="math inline">\(Y\)</span> unless you condition on <span class="math inline">\(Z\)</span>. Conditioning on <span class="math inline">\(Z\)</span>, the collider variable, opens the path. Once the path is open, information flows between <span class="math inline">\(X\)</span> and <span class="math inline">\(Y\)</span>.</li>
+</ol></li>
+<li><ol start="4" type="1">
+<li>The fourth bit of knowledge you need is that conditioning on a descendent variable is like conditioning on the variable itself, but weaker. A descendent is a variable influenced by another variable. Controlling for <span class="math inline">\(D\)</span> will also control, to a lesser extent, for <span class="math inline">\(Z\)</span>. The reason is that <span class="math inline">\(D\)</span> has some information about <span class="math inline">\(Z\)</span>. This will (partially) open the path from <span class="math inline">\(X\)</span> to <span class="math inline">\(Y\)</span>, because <span class="math inline">\(Z\)</span> is a collider. The same holds for non-colliders. If you condition on a descendent of Z in the pipe, it’ll still be like (weakly) closing the pipe.</li>
+</ol></li>
+</ul>
 
 
+</section>
 </section>
 
 </main> <!-- /main -->
