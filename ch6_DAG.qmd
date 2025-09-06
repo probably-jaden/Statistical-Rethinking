@@ -6,6 +6,7 @@ execute:
   message: false
   cache: true
   cache.lazy: false
+fig-align: center
 ---
 
 ## Causal Terror Intro
@@ -184,7 +185,11 @@ When two predictor variables are very strongly correlated, including both in a m
 
 Using the milk primate data from the last chapter
 
+$$\mu_\text{milk} = \alpha + \beta_F\text{Fat Percent}_i$$
+
 ```{r}
+#| fig-width: 10
+#| fig-height: 2
 milk <- milk %>% 
   mutate(kcal_z = (kcal.per.g - mean(kcal.per.g))/sd(kcal.per.g),
          fat_z = (perc.fat - mean(perc.fat))/sd(perc.fat),
@@ -201,6 +206,30 @@ b6.1 <- brm(data = milk,
             iter = 2000, warmup = 500, cores = 4, seed = 5,
             backend = "cmdstanr", silent = 2, file = "fits/b06.1")
 
+
+as_tibble(b6.1) %>% 
+  rename("Percent Fat" = b_fat_z) %>% 
+  dplyr::select(c(`Percent Fat`, `Intercept`)) %>% 
+  pivot_longer(cols = everything(),
+               names_to = "Covariate",
+               values_to = "Effect") %>% 
+  ggplot(aes(x = `Effect`, y = reorder(Covariate, `Effect`))) +
+  stat_halfeye(point_interval = median_qi, .width = .95,
+               fill = "firebrick4") +
+  labs(x = "Effect on Kilo-Calories per Gram of Milk",
+       y = NULL) +
+  theme_bw() +
+  theme(axis.text.y = element_text(hjust = 0),
+        axis.ticks.y = element_blank(),
+        panel.grid = element_blank())
+
+```
+
+
+$$\mu_\text{milk} = \alpha + \beta_L\text{Lactose Percent}_i$$
+```{r}
+#| fig-width: 10
+#| fig-height: 2
 b6.1b <- brm(data = milk,
             family = gaussian,
             kcal_z ~ 1 + lactose_z,
@@ -213,8 +242,22 @@ b6.1b <- brm(data = milk,
             backend = "cmdstanr", silent = 2, file = "fits/b06.1b")
 
 
-posterior_summary(b6.1)[1:4, ] %>% round(digits = 3)
-posterior_summary(b6.1b)[1:4, ] %>% round(digits = 3)
+as_tibble(b6.1b) %>% 
+  rename("Percent Lactose" = b_fat_z) %>% 
+  dplyr::select(c(`Percent Lactose`, `Intercept`)) %>% 
+  pivot_longer(cols = everything(),
+               names_to = "Covariate",
+               values_to = "Effect") %>% 
+  ggplot(aes(x = `Effect`, y = reorder(Covariate, `Effect`))) +
+  stat_halfeye(point_interval = median_qi, .width = .95,
+               fill = "firebrick4") +
+  labs(x = "Effect on Kilo-Calories per Gram of Milk",
+       y = NULL) +
+  theme_bw() +
+  theme(axis.text.y = element_text(hjust = 0),
+        axis.ticks.y = element_blank(),
+        panel.grid = element_blank())
+
 ```
 
 
@@ -231,6 +274,8 @@ The posterior distributions for $\beta_\text{fat}$ and $\beta_\text{lactose}$ ar
 posterior mean of $\beta_\text{fat}$ is as positive as the mean of $\beta_\text{lactose}$ is negative. Both are narrow posterior distributions that lie almost entirely on one side or the other of zero. Given the strong associ- ation of each predictor with the outcome, we might conclude that both variables are reliable predictors of total energy in milk, across species. The more fat, the more kilocalories in the milk. The more lactose, the fewer kilocalories in milk. But watch what happens when we place both predictor variables in the same regression model:
 
 ```{r}
+#| fig-width: 10
+#| fig-height: 2
 b6.1c <- brm(data = milk,
              family = gaussian,
              kcal_z ~ 1 + fat_z + lactose_z,
@@ -242,7 +287,22 @@ b6.1c <- brm(data = milk,
              iter = 2000, warmup = 500, cores = 4, seed = 5,
              backend = "cmdstanr", silent = 2, file = "fits/b06.1c")
 
-posterior_summary(b6.1c)[1:4,] %>% round(digits = 3)
+as_tibble(b6.1c) %>% 
+  rename("Fat Percent" = b_fat_z,
+         "Lactose Percent" = b_lactose_z) %>% 
+  dplyr::select(c(`Fat Percent`, `Lactose Percent`, `Intercept`)) %>% 
+  pivot_longer(cols = everything(),
+               names_to = "Covariate",
+               values_to = "Effect") %>% 
+  ggplot(aes(x = `Effect`, y = reorder(Covariate, `Effect`))) +
+  stat_halfeye(point_interval = median_qi, .width = .95,
+               fill = "firebrick4") +
+  labs(x = "Effect on Kilo-Calories per Gram of Milk",
+       y = NULL) +
+  theme_bw() +
+  theme(axis.text.y = element_text(hjust = 0),
+        axis.ticks.y = element_blank(),
+        panel.grid = element_blank())
 ```
 Now the posterior means of both $\beta_\text{fat}$ and $\beta_\text{lactose}$ are closer to zero. And the standard deviations for both parameters are twice as large as in the bivariate models.
 
@@ -354,6 +414,9 @@ $$ \sigma \sim \text{Exponential(1)} $$
 The proportion of growth $p$ is now a function of the predictor variables
 
 ```{r}
+#| fig-width: 10
+#| fig-height: 2
+
 b6.3 <- brm(data = exp_data,
             family = gaussian,
             bf(
@@ -373,7 +436,23 @@ b6.3 <- brm(data = exp_data,
 # get_prior(bf(final_height ~ initial_height * p, p ~ treatment + fungus, nl = TRUE),
 #           data = exp_data, family = gaussian())
 
-posterior_summary(b6.3)[1:4,] %>% round(digits = 3)
+as_tibble(b6.3) %>% 
+  rename("Intercept" = b_p_Intercept,
+         "Treatment" = b_p_treatment, 
+         "Fungus" = b_p_fungus) %>% 
+  dplyr::select(c(`Treatment`, `Fungus`, `Intercept`)) %>% 
+  pivot_longer(cols = everything(),
+               names_to = "Covariate",
+               values_to = "Effect") %>% 
+  ggplot(aes(x = `Effect`, y = reorder(Covariate, `Effect`))) +
+  stat_halfeye(point_interval = median_qi, .width = .95,
+               fill = "firebrick4") +
+  labs(x = "Percent Growth Effect on Plant",
+       y = NULL) +
+  theme_bw() +
+  theme(axis.text.y = element_text(hjust = 0),
+        axis.ticks.y = element_blank(),
+        panel.grid = element_blank())
 ```
 The $\alpha$ parameter is the same as p before. And it has nearly the same posterior. The marginal posterior for $\beta_\text{Treatment}$, the effect of treatment, is solidly zero, with a tight interval. The problem is that fungus is mostly a consequence of treatment. To actually answer our research question of the effect of treatment we must omit the fungus variable.
 
@@ -388,6 +467,9 @@ $$ p = \alpha + \beta_T\text{Treatment}_i$$
 The rest of the model is the same as above
 
 ```{r}
+#| fig-width: 10
+#| fig-height: 2
+
 b6.4 <- brm(data = exp_data,
             family = gaussian,
             bf(
@@ -406,7 +488,22 @@ b6.4 <- brm(data = exp_data,
 # get_prior(bf(final_height ~ initial_height * p, p ~ treatment + fungus, nl = TRUE),
 #           data = exp_data, family = gaussian())
 
-posterior_summary(b6.4)[1:3,] %>% round(digits = 3)
+as_tibble(b6.4) %>% 
+  rename("Intercept" = b_p_Intercept,
+         "Treatment" = b_p_treatment) %>% 
+  dplyr::select(c(`Treatment`, `Intercept`)) %>% 
+  pivot_longer(cols = everything(),
+               names_to = "Covariate",
+               values_to = "Effect") %>% 
+  ggplot(aes(x = `Effect`, y = reorder(Covariate, `Effect`))) +
+  stat_halfeye(point_interval = median_qi, .width = .95,
+               fill = "firebrick4") +
+  labs(x = "Percent Growth Effect on Plant",
+       y = NULL) +
+  theme_bw() +
+  theme(axis.text.y = element_text(hjust = 0),
+        axis.ticks.y = element_blank(),
+        panel.grid = element_blank())
 ```
 
 Here our treatment effect does solidly increase the height of the plant by 3% - 17%.
