@@ -8,9 +8,9 @@ execute:
   cache.lazy: false
   fig-align: center
 ---
-
-## Causal Terror Intro
 ```{r setup}
+knitr::opts_chunk$set(fig.align = "center")
+
 library(tidyverse)
 library(brms)
 library(bayesplot)
@@ -23,6 +23,10 @@ library(ggdag)
 library(rethinking)
 data(milk)
 ```
+
+
+## Causal Terror Intro
+
 
 
 "The more likely it is to kill you, if true, the less likely it is to be true. The more boring the topic, the more rigorous the results. How could this widely believed negative correlation exist? There doesn’t seem to be any reason for studies of topics that people care about to produce less reliable results. Maybe popular topics attract more and worse researchers, like flies drawn to the smell of honey? Actually all that is necessary for such a negative correlation to arise is that peer reviewers care about both newsworthiness and trustworthiness."

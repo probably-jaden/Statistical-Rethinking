@@ -1,24 +1,28 @@
 ---
 format: html
 execute:
+  fig-align: center
   echo: false
   warning: false
   message: false
   cache: true
   cache.lazy: false
-  fig-align: center
+
 editor: visual
 
 ---
 
 ```{r setup, include = FALSE}
+knitr::opts_chunk$set(fig.align = "center")
+
 library(rethinking)
 data(WaffleDivorce)
 data(milk)
 data(Howell1)
 kungHeight <- Howell1
-
 detach(package:rethinking, unload = T)
+
+
 library(tidyverse)
 library(brms)
 library(ggrepel)
