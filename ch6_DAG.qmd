@@ -243,7 +243,7 @@ b6.1b <- brm(data = milk,
 
 
 as_tibble(b6.1b) %>% 
-  rename("Percent Lactose" = b_fat_z) %>% 
+  rename("Percent Lactose" = b_lactose_z) %>% 
   dplyr::select(c(`Percent Lactose`, `Intercept`)) %>% 
   pivot_longer(cols = everything(),
                names_to = "Covariate",
