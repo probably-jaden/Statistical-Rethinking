@@ -1048,7 +1048,7 @@ The posterior mean line is weakly positive, but it is highly imprecise. A lot of
 
 #### 🎛️ Parameters
 
-```{r b5.3 params}
+```{r}
 #| fig-width: 10
 #| fig-height: 2
 
