@@ -45,8 +45,9 @@ data <- data %>%
 # Create the plot
 ggplot(data, aes(x = x, y = y)) +
   geom_point(aes(color = above_line), alpha = 0.7, size = 2) +
+  geom_smooth(data = . %>% filter(above_line), method = "lm", se = FALSE, color = "blue4") +
   geom_abline(slope = -1, intercept = line_intercept, 
-              color = "blue4", size = 1, linetype = "solid") +
+              color = "grey80", size = 1, linetype = "dashed") +
   scale_color_manual(values = c("FALSE" = "gray50", "TRUE" = "blue"),
                      name = "Publication Status",
                      labels = c("Unpublished", "Published")) +
@@ -54,8 +55,7 @@ ggplot(data, aes(x = x, y = y)) +
        subtitle = "Peer reviewers create a negative correlation ",
        x = "Trustworthiness",
        y = "Newsworthiness") +
-  theme_minimal() +
-  coord_fixed() # Keeps aspect ratio 1:1 to show true circle shape
+  theme_minimal() 
 ```
 
 Multiple regression is plagued with "paradoxes" that happen when we condition (like conditioning on publication status) on some variables in our regression. In this chapter we'll go over three problems with regressing on additional variables: multicollinearity, post-treatment bias, and collider bias.
@@ -748,6 +748,203 @@ ggplot(data = familySim)+
   labs(x = "Grandparents Effect", y = "Childerns Education", title = "Regression with Parents in 45th to 65th centiles")
 ```
 
-So how does the negative association arise, when we condition on parents? Conditioning on parents is like looking within sub-populations of parents with similar education. So let’s try that. In Figure 6.5, I’ve highlighted in filled points those parents between the 45th and 60th centiles of education. There is nothing special of this range. It just makes the phenomenon easier to see. Now if we draw a regression line through only these points, regressing C on G, the slope is negative. There is the negative association that our multiple regression finds. But why does it exist?
+So how does the negative association arise, when we condition on parents? Conditioning on parents is like looking within sub-populations of parents with similar education. So let’s try that. In Figure 6.5, I’ve highlighted in filled points those parents between the 45th and 60th centiles of education. There is nothing special of this range. It just makes the phenomenon easier to see. Now if we draw a regression line through only these points, regressing $C$ on $G$, the slope is negative. There is the negative association that our multiple regression finds. But why does it exist?
     
-It exists because, once we know P, learning G invisibly tells us about the neighborhood U, and U is associated with the outcome C. I know this is confusing. As I keep saying, if you are confused, it is only because you are paying attention. So consider two different parents with the same education level, say for example at the median 50th centile. One of these parents has a highly educated grandparent. The other has a poorly educated grandparent. The only probable way, in this example, for these parents to have the same education is if they live in different types of neighborhoods. We can’t see these neighborhood effects—we haven’t measured them, recall—but the influence of neighborhood is still transmitted to the children C. So for our mythical two parents with the same education, the one with the highly educated grandparent ends up with a less well educated child. The one with the less educated grandparent ends up with the better educated child. G predicts lower C.
+It exists because, once we know $P$, learning $G$ invisibly tells us about the neighborhood $U$, and $U$ is associated with the outcome $C$. I know this is confusing. As I keep saying, if you are confused, it is only because you are paying attention. So consider two different parents with the same education level, say for example at the median 50th centile. One of these parents has a highly educated grandparent. The other has a poorly educated grandparent. The only probable way, in this example, for these parents to have the same education is if they live in different types of neighborhoods. We can’t see these neighborhood effects—we haven’t measured them, recall—but the influence of neighborhood is still transmitted to the children $C$. So for our mythical two parents with the same education, the one with the highly educated grandparent ends up with a less well educated child. The one with the less educated grandparent ends up with the better educated child. $G$ predicts lower $C$.
+
+```{r}
+#| fig-width: 10
+#| fig-height: 2
+
+b6.8 <- brm(data = familySim,
+            family = gaussian,
+            C ~ 1 + G + P + U,
+            prior = c(
+              prior(normal(0, 5), class = Intercept),
+              prior(normal(0, 2), class = b),
+              prior(exponential(2), class = sigma)
+            ),
+            iter = 2000, warmup = 500, cores = 4, seed = 4,
+            backend = "cmdstanr", silent = 2, file = "fits/b06.8.1"
+            )
+
+as_tibble(b6.8) %>% 
+  rename("Grandparents" = b_G,
+         "Parents" = b_P,
+         "Unobserved" = b_U) %>% 
+  dplyr::select(c(`Grandparents`, `Parents`, `Unobserved`, `Intercept`)) %>% 
+  pivot_longer(cols = everything(),
+               names_to = "Covariate",
+               values_to = "Effect") %>% 
+  ggplot(aes(x = `Effect`, y = reorder(Covariate, `Effect`))) +
+  stat_halfeye(point_interval = median_qi, .width = .95,
+               fill = "firebrick4") +
+  labs(x = "Effect on Childs Educational Attainment",
+       y = NULL) +
+  theme_bw() +
+  theme(axis.text.y = element_text(hjust = 0),
+        axis.ticks.y = element_blank(),
+        panel.grid = element_blank())
+
+```
+
+And these are the slopes that we simulated!
+
+## Confronting Confounding
+
+Cofounding is when the association between an outcome $Y$ and a predictor $X$ is not the same if we had experimentally determined the values of $X$. For example if we wanted to see if there was an association between education $E$ and wages $W$. There are many uobserved variables $U$ which influence both $E$ and $W$, like where they live, who there parents are, and who are their friends.
+
+```{r}
+#| fig-width: 3
+#| fig-height: 2
+dag_coords <- tibble(name = c("E", "U", "W"),
+                     x = c(1, 2, 3),
+                     y = c(1, 2, 1))
+
+m7 <- dagify("W" ~ "E" + "U",
+             "E" ~ "U",
+             coords = dag_coords) %>% 
+  ggplot(aes(x = x, y = y, xend = xend, yend = yend))+
+  geom_dag_point(color = "firebrick", alpha = 1/4, size = 10)+
+  geom_dag_text( color = "firebrick", parse = TRUE) +
+  geom_dag_edges(edge_color = "firebrick") +
+  scale_x_continuous(NULL, breaks = NULL, expand = c(0.1, 0.1)) +
+  scale_y_continuous(NULL, breaks = NULL, expand = c(0.2, 0.2)) +
+  theme_bw() +
+  theme(panel.grid = element_blank())+
+  labs(caption = "W = Wages, E = Education, U = Unobserved")
+
+m7
+```
+
+If we regress $W$ on $E$ the estimate of the causal effect will be confounded by $U$. It is confounded, because there are two paths connecting $E$ and $W$: (1) $E \rightarrow W$ and (2) $E \leftarrow U \rightarrow W$. A “path” here just means any series of variables you could walk through to get from one variable to another, ignoring the directions of the arrows. Both of these paths create a statistical association between $E$ and $W$. But only the first path is causal. The second path is non-causal. Why? Because if only the second path existed, and we changed $E$, it would not change $W$. Any causal influence of $E$ on $W$ operates only on the first path.
+
+We normally address this by running an experiment where we assign the education level at random. This cuts off the influence of $U$ on $E$:
+
+```{r}
+#| fig-width: 3
+#| fig-height: 2
+m8 <- dagify("W" ~ "E" + "U",
+             coords = dag_coords) %>% 
+  ggplot(aes(x = x, y = y, xend = xend, yend = yend))+
+  geom_dag_point(color = "firebrick", alpha = 1/4, size = 10)+
+  geom_dag_text( color = "firebrick", parse = TRUE) +
+  geom_dag_edges(edge_color = "firebrick") +
+  scale_x_continuous(NULL, breaks = NULL, expand = c(0.1, 0.1)) +
+  scale_y_continuous(NULL, breaks = NULL, expand = c(0.2, 0.2)) +
+  theme_bw() +
+  theme(panel.grid = element_blank())+
+  labs(caption = "W = Wages, E = Education, U = Unobserved")
+
+m8
+```
+
+```{r}
+dag_coords <- tibble(name = c("E", "U", "W"),
+                     x = c(1, 2, 3),
+                     y = c(1, 2, 1))
+
+m7 <- dagify("W" ~ "E" + "U",
+             "E" ~ "U",
+             coords = dag_coords) %>% 
+  ggplot(aes(x = x, y = y, xend = xend, yend = yend))+
+  geom_dag_point(color = "firebrick", alpha = 1/4, size = 10)+
+  geom_dag_text( color = "firebrick", parse = TRUE) +
+  geom_dag_edges(edge_color = "firebrick") +
+  scale_x_continuous(NULL, breaks = NULL, expand = c(0.1, 0.1)) +
+  scale_y_continuous(NULL, breaks = NULL, expand = c(0.2, 0.2)) +
+  theme_bw() +
+  theme(panel.grid = element_blank())+
+  labs(caption = "W = Wages, E = Education, U = Unobserved")
+
+m7
+
+```
+
+### Four Fundamental DAGS
+
+```{r}
+#| fig-width: 10
+#| fig-height: 3
+
+dag_coords <- tibble(name = c("X", "Z", "Y"),
+                     x = c(1, 2, 3),
+                     y = c(2, 1, 2))
+
+m8 <- dagify("X" ~ "Z",
+             "Y" ~ "Z",
+             coords = dag_coords) %>% 
+  ggplot(aes(x = x, y = y, xend = xend, yend = yend))+
+  geom_dag_point(color = "firebrick", alpha = 1/4, size = 10)+
+  geom_dag_text( color = "firebrick", parse = TRUE) +
+  geom_dag_edges(edge_color = "firebrick") +
+  scale_x_continuous(NULL, breaks = NULL, expand = c(0.1, 0.1)) +
+  scale_y_continuous(NULL, breaks = NULL, expand = c(0.2, 0.2)) +
+  theme_bw() +
+  theme(panel.grid = element_blank())+
+  labs(title = "The Fork")
+
+
+
+dag_coords <- tibble(name = c("X", "Z", "Y"),
+                     x = c(1, 2, 3),
+                     y = c(3, 2, 1))
+
+m9 <- dagify("Z" ~ "X",
+             "Y" ~ "Z",
+             coords = dag_coords) %>% 
+  ggplot(aes(x = x, y = y, xend = xend, yend = yend))+
+  geom_dag_point(color = "firebrick", alpha = 1/4, size = 10)+
+  geom_dag_text( color = "firebrick", parse = TRUE) +
+  geom_dag_edges(edge_color = "firebrick") +
+  scale_x_continuous(NULL, breaks = NULL, expand = c(0.1, 0.1)) +
+  scale_y_continuous(NULL, breaks = NULL, expand = c(0.2, 0.2)) +
+  theme_bw() +
+  theme(panel.grid = element_blank())+
+  labs(title = "The Pipe")
+
+
+
+dag_coords <- tibble(name = c("X", "Z", "Y"),
+                     x = c(1, 2, 3),
+                     y = c(1, 2, 1))
+
+m10 <- dagify("Z" ~ "X" + "Y", 
+             coords = dag_coords) %>% 
+  ggplot(aes(x = x, y = y, xend = xend, yend = yend))+
+  geom_dag_point(color = "firebrick", alpha = 1/4, size = 10)+
+  geom_dag_text( color = "firebrick", parse = TRUE) +
+  geom_dag_edges(edge_color = "firebrick") +
+  scale_x_continuous(NULL, breaks = NULL, expand = c(0.1, 0.1)) +
+  scale_y_continuous(NULL, breaks = NULL, expand = c(0.2, 0.2)) +
+  theme_bw() +
+  theme(panel.grid = element_blank())+
+  labs(title = "The Collider")
+
+dag_coords <- tibble(name = c("X", "Z", "D", "Y"),
+                     x = c(1, 2, 2, 3),
+                     y = c(1, 2, 1.3, 1))
+
+m11 <- dagify("Z" ~ "X" + "Y",
+              "D" ~ "Z",
+             coords = dag_coords) %>% 
+  ggplot(aes(x = x, y = y, xend = xend, yend = yend))+
+  geom_dag_point(color = "firebrick", alpha = 1/4, size = 10)+
+  geom_dag_text( color = "firebrick", parse = TRUE) +
+  geom_dag_edges(edge_color = "firebrick") +
+  scale_x_continuous(NULL, breaks = NULL, expand = c(0.1, 0.1)) +
+  scale_y_continuous(NULL, breaks = NULL, expand = c(0.2, 0.2)) +
+  theme_bw() +
+  theme(panel.grid = element_blank())+
+  labs(title = "The Descendent")
+
+m8 | m9 | m10 | m11
+```
+
+- (1) The first type of relation is the one we worked with just above,a fork:$X /leftarrow Z \rightarrow Y$. This is the classic confounder. In a fork, some variable $Z$ is a common cause of $X$ and $Y$, generating a correlation between them. If we condition on $Z$, then learning $X$ tells us nothing about $Y$. $X$ and $Y$ are independent, conditional on $Z$.
+
+- (2) The second type of relation is a pipe: $X \rightarrow Z \rightarrow Y$. We saw this when we discussed the plant growth example and post-treatment bias: The treatment X influences fungus $Z$ which influences growth $Y$. If we condition on $Z$ now, we also block the path from $X$ to $Y$. So in both a fork and a pipe, conditioning of the middle variable blocks the path.
+
+- (3) The third type of relation is a collider: $X \rightarrow Z \leftarrow Y$. You met colliders earlier in this chapter. Unlike the other two types of relations, in a collider there is no association between $X$ and $Y$ unless you condition on $Z$. Conditioning on $Z$, the collider variable, opens the path. Once the path is open, information flows between $X$ and $Y$.
+
+- (4) The fourth bit of knowledge you need is that conditioning on a descendent variable is like conditioning on the variable itself, but weaker. A descendent is a variable influenced by another variable. Controlling for $D$ will also control, to a lesser extent, for $Z$. The reason is that $D$ has some information about $Z$. This will (partially) open the path from $X$ to $Y$, because $Z$ is a collider. The same holds for non-colliders. If you condition on a descendent of Z in the pipe, it’ll still be like (weakly) closing the pipe.
