@@ -6,8 +6,9 @@ execute:
   message: false
   cache: true
   cache.lazy: false
+  fig-align: center
 editor: visual
-fig-align: center
+
 ---
 
 ```{r setup, include = FALSE}
@@ -829,7 +830,7 @@ posterior_comparison %>%
 Once we know median age at marriage for a State, there is little or no additional predictive power in also knowing the rate of marriage in that State.
 
 ::: panel-tabset
-#### Residual Map
+#### US Map Residual 
 
 ```{r}
 #| fig-width: 6
@@ -858,6 +859,7 @@ deviance_plot_map <-
 deviance_plot_map
 ```
 
+#### States by Residual
 ```{r}
 #| fig-width: 3
 #| fig-height: 6
@@ -1187,7 +1189,8 @@ simMilkMass <- as_tibble(as_draws_df(milk.02)) %>%
 #### 📈 μ vs full distribution
 
 ```{r mu vs full heat plot milk mass}
-
+#| fig-width: 10
+#| fig-height: 4
 # Find global limits across both datasets
 ymin <- min(c(simMilkMass$simKcal, simMilkMass$simKcalEst, milk2$kcal.per.g_s))
 ymax <- max(c(simMilkMass$simKcal, simMilkMass$simKcalEst, milk2$kcal.per.g_s))
@@ -1295,8 +1298,6 @@ milk.3 <-
 
 ```
 
-::: panel-tabset
-
 ```{r}
 #| fig-width: 10
 #| fig-height: 2
@@ -1318,7 +1319,6 @@ as_tibble(milk.3) %>%
         axis.ticks.y = element_blank(),
         panel.grid = element_blank())
 ```
-#### Counterfactual Plots
 
 ```{r}
 #| fig-width: 5
@@ -1351,7 +1351,6 @@ p1 <-
 
 p1
 ```
-:::
 
 ```{r}
 dag5.7 <- dagitty( "dag{

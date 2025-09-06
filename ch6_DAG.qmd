@@ -6,7 +6,7 @@ execute:
   message: false
   cache: true
   cache.lazy: false
-fig-align: center
+  fig-align: center
 ---
 
 ## Causal Terror Intro
@@ -313,7 +313,7 @@ In the scientific literature, you might encounter a variety of dodgy ways of cop
 What is likely going on in the milk example is that there is a core tradeoff in milk com- position that mammal mothers must obey. If a species nurses often, then the milk tends to be watery and low in energy. Such milk is high in sugar (lactose). If instead a species nurses rarely, in short bouts, then the milk needs to be higher in energy. Such milk is very high in fat. This implies a causal model something like this:
 
 ```{r}
-#| fig-width: 8
+#| fig-width: 4
 #| fig-height: 2
 
 dag_coords <-
@@ -375,7 +375,10 @@ If p = 1, the plant hasn’t changed at all from time t = 0 to time t = 1. If p 
 
 $$ p \sim \text{Log-Normal(0,  0.25)}$$
 
-```{r, echo = TRUE}
+```{r}
+#| fig-width: 10
+#| fig-height: 1.5
+
 b6.2 <- brm(
   data = exp_data,
   family = gaussian(),
@@ -389,7 +392,21 @@ b6.2 <- brm(
   chains = 4, iter = 2000, warmup = 500, seed = 5,
   backend = "cmdstanr", silent = 2, file = "fits/b0.6.2b")
 
-posterior_summary(b6.2)[1:2,] %>% round(digits = 3)
+as_tibble(b6.2) %>% 
+  rename("Intercept" = b_p_Intercept) %>% 
+  dplyr::select(c(`Intercept`)) %>% 
+  pivot_longer(cols = everything(),
+               names_to = "Covariate",
+               values_to = "Effect") %>% 
+  ggplot(aes(x = `Effect`, y = reorder(Covariate, `Effect`))) +
+  stat_halfeye(point_interval = median_qi, .width = .95,
+               fill = "firebrick4") +
+  labs(x = "Effect on Kilo-Calories per Gram of Milk",
+       y = NULL) +
+  theme_bw() +
+  theme(axis.text.y = element_text(hjust = 0),
+        axis.ticks.y = element_blank(),
+        panel.grid = element_blank())
 
 ```
 
@@ -936,27 +953,6 @@ m8 <- dagify("W" ~ "E" + "U",
 m8
 ```
 
-```{r}
-dag_coords <- tibble(name = c("E", "U", "W"),
-                     x = c(1, 2, 3),
-                     y = c(1, 2, 1))
-
-m7 <- dagify("W" ~ "E" + "U",
-             "E" ~ "U",
-             coords = dag_coords) %>% 
-  ggplot(aes(x = x, y = y, xend = xend, yend = yend))+
-  geom_dag_point(color = "firebrick", alpha = 1/4, size = 10)+
-  geom_dag_text( color = "firebrick", parse = TRUE) +
-  geom_dag_edges(edge_color = "firebrick") +
-  scale_x_continuous(NULL, breaks = NULL, expand = c(0.1, 0.1)) +
-  scale_y_continuous(NULL, breaks = NULL, expand = c(0.2, 0.2)) +
-  theme_bw() +
-  theme(panel.grid = element_blank())+
-  labs(caption = "W = Wages, E = Education, U = Unobserved")
-
-m7
-
-```
 
 ### Four Fundamental DAGS
 
