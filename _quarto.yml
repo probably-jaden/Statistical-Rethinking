@@ -13,6 +13,8 @@ website:
         text: Multi Regression
       - href: ch6_DAG.qmd
         text: Causal Paths
+      - href: ch7ModelComparison.qmd
+        text: Model Comparison
 format:
   html:
     theme: cosmo

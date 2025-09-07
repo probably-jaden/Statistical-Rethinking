@@ -9,7 +9,6 @@ execute:
   cache.lazy: false
 
 editor: visual
-
 ---
 
 ```{r setup, include = FALSE}
@@ -228,7 +227,7 @@ modelEst_plot + model_plot + plot_layout(guides = "collect")
 
 ```
 
-####  🎛 Parameters
+#### 🎛 Parameters
 
 ```{r summary median marriage age}
 #| fig-width: 10
@@ -405,7 +404,7 @@ combined_plot_mRate
 
 ```
 
-####  🎛 Parameters
+#### 🎛 Parameters
 
 ```{r summary b5.2}
 #| fig-width: 10
@@ -674,7 +673,6 @@ r_b5.4b <-
 
 ```
 
-
 ```{r}
 #| fig-width: 10
 #| fig-height: 4
@@ -834,7 +832,7 @@ posterior_comparison %>%
 Once we know median age at marriage for a State, there is little or no additional predictive power in also knowing the rate of marriage in that State.
 
 ::: panel-tabset
-#### US Map Residual 
+#### US Map Residual
 
 ```{r}
 #| fig-width: 6
@@ -864,6 +862,7 @@ deviance_plot_map
 ```
 
 #### States by Residual
+
 ```{r}
 #| fig-width: 3
 #| fig-height: 6
@@ -1391,9 +1390,7 @@ $$ \beta_\text{male} \sim \text{Normal(0, 10)}$$
 
 $$ \sigma \sim \text{Uniform(0, 50)}$$
 
-The parameter $\beta_\text{male}$ only influences prediction for the cases where the individual is a male. Using this approach means that $\beta_\text{male}$ represents the expected difference between males and females in height. This makes assigning our priors a bit harder. Our approach assumes there is more uncertainty about males than females, because a male includes two parameters and therefore has two parameters. 
-
-
+The parameter $\beta_\text{male}$ only influences prediction for the cases where the individual is a male. Using this approach means that $\beta_\text{male}$ represents the expected difference between males and females in height. This makes assigning our priors a bit harder. Our approach assumes there is more uncertainty about males than females, because a male includes two parameters and therefore has two parameters.
 
 ```{r prior height sim}
 #| fig-width: 10
@@ -1460,12 +1457,12 @@ post_plt_5.6 <- ggplot(data = post_5.6)+
 prior_plt_5.6 + post_plt_5.6 + plot_layout(guides = "collect")
 
 ```
+
 Our priors are a bit wide, and the extra variance on males doesn't make to much sense.
 
 A better way is to use an index variable.
 
-$$ \text{Height}_i \sim \text{Normal(}\mu_i, \ \sigma_i\text{)}$$
-$$ \mu_i = \alpha_\text{Sex[i]}$$
+$$ \text{Height}_i \sim \text{Normal(}\mu_i, \ \sigma_i\text{)}$$ $$ \mu_i = \alpha_\text{Sex[i]}$$
 
 $$\alpha_j \sim \text{Normal(178, 20),  for j  = 1..2}$$
 
@@ -1564,7 +1561,6 @@ as_tibble(b5.6b) %>%
 
 Binary categories are easy, whether you use an indicator variable or instead an index variable. But when there are more than two categories, the indicator variable approach explodes. While the index approach does not change at all when you add more categories. You do get more parameters, of course, just as many as in the indicator variable approach. But the model specification looks just like it does in the binary case. And the priors continue to be easier, unless you really do have prior information about contrasts.
 
-
 ### Milk example
 
 ```{r}
@@ -1609,4 +1605,3 @@ as_tibble(b5.7) %>%
         axis.ticks.y = element_blank(),
         panel.grid = element_blank())
 ```
-
