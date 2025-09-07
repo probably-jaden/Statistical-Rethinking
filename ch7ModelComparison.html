@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>ch7modelcomparison – Statistical Rethinking Portfolio</title>
+<title>ch7modelcomparison – Jaden's Statistical Rethinking</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -107,7 +107,7 @@ window.Quarto = {
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
     <a class="navbar-brand" href="./index.html">
-    <span class="navbar-title">Statistical Rethinking Portfolio</span>
+    <span class="navbar-title">Jaden’s Statistical Rethinking</span>
     </a>
   </div>
             <div id="quarto-search" class="" title="Search"></div>
@@ -116,10 +116,6 @@ window.Quarto = {
 </button>
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
-  <li class="nav-item">
-    <a class="nav-link" href="./index.html"> 
-<span class="menu-text">Home</span></a>
-  </li>  
   <li class="nav-item">
     <a class="nav-link" href="./ch4_linear_regression_polished.html"> 
 <span class="menu-text">Linear Regression</span></a>
@@ -130,11 +126,11 @@ window.Quarto = {
   </li>  
   <li class="nav-item">
     <a class="nav-link" href="./ch6_DAG.html"> 
-<span class="menu-text">Causal Paths</span></a>
+<span class="menu-text">Causal Confounds</span></a>
   </li>  
   <li class="nav-item">
     <a class="nav-link active" href="./ch7ModelComparison.html" aria-current="page"> 
-<span class="menu-text">Model Comparison</span></a>
+<span class="menu-text">Model Metrics</span></a>
   </li>  
 </ul>
           </div> <!-- /navcollapse -->
@@ -188,11 +184,11 @@ window.Quarto = {
 <p><span class="math inline">\(R^2\)</span> is a common metric that incentives naive scientists to keep adding variables. <span class="math inline">\(R^2\)</span> is defined as:</p>
 <p><span class="math display">\[R^2 = \frac{\text{var(outcome) - var(residuals)}}{\text{var(outcome)}} = 1 - \frac{\text{var(residuals)}}{\text{var(outcome)}}\]</span></p>
 <p><span class="math inline">\(R^2\)</span> always increases as more variables are added even when you just add random numbers which have no relation to the outcome.</p>
-<div class="cell" data-layout-align="center">
+<div class="cell">
 <div class="cell-output-display">
-<div class="quarto-figure quarto-figure-center">
+<div>
 <figure class="figure">
-<p><img src="ch7ModelComparison_files/figure-html/unnamed-chunk-1-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="480"></p>
+<p><img src="ch7ModelComparison_files/figure-html/unnamed-chunk-1-1.png" class="img-fluid figure-img" width="480"></p>
 </figure>
 </div>
 </div>
@@ -201,11 +197,11 @@ window.Quarto = {
 <section id="brain-body-vignette" class="level3">
 <h3 class="anchored" data-anchor-id="brain-body-vignette">Brain Body Vignette</h3>
 <p>Plotted below is the relationship between the body size of several primate species and their corresponding brain size. There’s not a strong <em>a priori</em> reason to think body and brain size are perfectly linearly related. The true relationship between brain and body size could be any number of polynomial or log’d functions. Let’s go through a couple to see what’s gained and what’s lost with trying ever more complex functions to fit the data.</p>
-<div class="cell" data-layout-align="center">
+<div class="cell">
 <div class="cell-output-display">
-<div class="quarto-figure quarto-figure-center">
+<div>
 <figure class="figure">
-<p><img src="ch7ModelComparison_files/figure-html/unnamed-chunk-2-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="480"></p>
+<p><img src="ch7ModelComparison_files/figure-html/unnamed-chunk-2-1.png" class="img-fluid figure-img" width="480"></p>
 </figure>
 </div>
 </div>
@@ -216,11 +212,11 @@ window.Quarto = {
 <p><span class="math display">\[\alpha \sim \text{Normal(0.5,  1)}\]</span></p>
 <p><span class="math display">\[\beta_b \sim \text{Normal(0,  10)}\]</span></p>
 <p><span class="math display">\[\sigma \sim \text{Log-Normal(0,  1)}\]</span></p>
-<div class="cell" data-layout-align="center">
+<div class="cell">
 <div class="cell-output-display">
-<div class="quarto-figure quarto-figure-center">
+<div>
 <figure class="figure">
-<p><img src="ch7ModelComparison_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="672"></p>
+<p><img src="ch7ModelComparison_files/figure-html/unnamed-chunk-4-1.png" class="img-fluid figure-img" width="576"></p>
 </figure>
 </div>
 </div>

@@ -6,9 +6,8 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="author" content="Jaden Earl">
 
-<title>Statistical Rethinking Homepage – Statistical Rethinking Portfolio</title>
+<title>Jaden’s Statistical Rethinking</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -68,6 +67,35 @@ ul.task-list li input[type="checkbox"] {
   }
 }</script>
 
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
 
 </head>
 
@@ -79,7 +107,7 @@ ul.task-list li input[type="checkbox"] {
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
     <a class="navbar-brand" href="./index.html">
-    <span class="navbar-title">Statistical Rethinking Portfolio</span>
+    <span class="navbar-title">Jaden’s Statistical Rethinking</span>
     </a>
   </div>
             <div id="quarto-search" class="" title="Search"></div>
@@ -88,10 +116,6 @@ ul.task-list li input[type="checkbox"] {
 </button>
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
-  <li class="nav-item">
-    <a class="nav-link active" href="./index.html" aria-current="page"> 
-<span class="menu-text">Home</span></a>
-  </li>  
   <li class="nav-item">
     <a class="nav-link" href="./ch4_linear_regression_polished.html"> 
 <span class="menu-text">Linear Regression</span></a>
@@ -102,11 +126,11 @@ ul.task-list li input[type="checkbox"] {
   </li>  
   <li class="nav-item">
     <a class="nav-link" href="./ch6_DAG.html"> 
-<span class="menu-text">Causal Paths</span></a>
+<span class="menu-text">Causal Confounds</span></a>
   </li>  
   <li class="nav-item">
     <a class="nav-link" href="./ch7ModelComparison.html"> 
-<span class="menu-text">Model Comparison</span></a>
+<span class="menu-text">Model Metrics</span></a>
   </li>  
 </ul>
           </div> <!-- /navcollapse -->
@@ -124,49 +148,66 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#welcome" id="toc-welcome" class="nav-link active" data-scroll-target="#welcome">Welcome</a></li>
+  <li><a href="#what-is-this" id="toc-what-is-this" class="nav-link active" data-scroll-target="#what-is-this">What is this?</a></li>
+  <li><a href="#why-statistics" id="toc-why-statistics" class="nav-link" data-scroll-target="#why-statistics">Why Statistics?</a></li>
+  <li><a href="#index" id="toc-index" class="nav-link" data-scroll-target="#index">Index</a></li>
+  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
   </ul>
 </nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default">
-<div class="quarto-title">
-<h1 class="title">Statistical Rethinking Homepage</h1>
-</div>
 
 
 
-<div class="quarto-title-meta">
-
-    <div>
-    <div class="quarto-title-meta-heading">Author</div>
-    <div class="quarto-title-meta-contents">
-             <p>Jaden Earl </p>
-          </div>
-  </div>
-    
-  
-    
-  </div>
-  
-
-
-</header>
-
-
-<section id="welcome" class="level1">
-<h1>Welcome</h1>
-<p>This site showcases projects from my <strong>Statistical Rethinking</strong> work in R and Quarto.</p>
+<section id="what-is-this" class="level2">
+<h2 class="anchored" data-anchor-id="what-is-this">What is this?</h2>
+<p>This is my documentation of the statistical techniques that I’ve worked on and plan to work on in the future. There’s many other data science skills that I enjoy: deep learning techniques, data pipeline engineering, visualizations. But I won’t showcase those here, this page is purely on statistical methods.</p>
+<p>The textbook/course <a href="https://oceanrep.geomar.de/id/eprint/55819/1/Statistical%20Rethinking%202nd%20Edition.pdf">Statistical Rethinking</a> is a fun way to unlearn frequentist methods taught in every STAT 101 class. I appreciate it so much that I am making it the back bone to this project: adopting his chapter structure, his code, and his fiery attitude towards what constitutes good science.</p>
+</section>
+<section id="why-statistics" class="level2">
+<h2 class="anchored" data-anchor-id="why-statistics">Why Statistics?</h2>
+<details>
+<summary>
+<strong>Surely machine learning create more accurate predictions than traditional statistical models?</strong>
+</summary>
+<p><em>Machine learning is far more powerful than all of the traditional statistical techniques, but it requires far more data and computation. But there worst feature is that most all deep learning techniques are black boxes. They don’t tell you why they predict the things that they predict or what causes what (at least not yet). This is why science papers across all disciplines (including machine learning research) uses statistics to draw their conclusions. Traditional statistical techniques are weaker, but that weakness means they are more understandable to us. That better understanding will allow us to understand our most complicated systems like LLM’s, because after all they operate on the same fundamental probability engine.</em></p>
+</details>
+<details>
+<summary>
+<strong>Businesses say they want data processing, but what they’re really saying is they want system automation (e.g.&nbsp;invoices need to be categorized and sent to accounting)?</strong>
+</summary>
+<p><em>Yes, businesses need lots of automation, but they also need help making decisions. Who to hire, who to let go, what product to sell, at what price to sell, to name a few. These decisions are in a weird gray zone, they require some human judgement but would benefit from computer aid. Statistics are the best set of tools for many of these problems. They allow both humans and computers to add their judgement’s to an analysis, getting a better result than either would on their own.</em></p>
+</details>
+<details>
+<summary>
+<strong>Visualizations are more intuitive and persuasive to audiences. <a href="https://ourworldindata.org/">Our World in Data</a> has changed more minds than dull economic statistics.</strong>
+</summary>
+<p><em>Visualizations are what got me interested in statistics in the first place! I love them and try to use them as often as I can. But they’re severely constrained in what they can accomplish. You won’t be able to easily show how mountain terrain, soil fertility, precipitation, and historical wealth all help predict countries GDP without showing your audience half a dozen maps. Statistical models do what we can’t see in a way that we can still understand.</em></p>
+</details>
+</section>
+<section id="index" class="level2">
+<h2 class="anchored" data-anchor-id="index">Index</h2>
+<p><strong>(1) <a href="./ch4_linear_regression_polished.html">Linear Regression</a> 📈 </strong></p>
 <ul>
-<li>📈 <a href="./ch4_linear_regression_polished.html">Linear Regression</a><br>
-</li>
-<li>🔀 <a href="./ch5_multilinear.html">Multi Regression</a><br>
-</li>
-<li>➡️ <a href="./ch6_DAG.html">Causal Paths</a></li>
-<li>🎯️ <a href="./ch7ModelComparison.html">Model Scoring</a></li>
+<li>How can we use one variable (e.g.&nbsp;Education) to predict another (e.g.&nbsp;Salary). Doctorates love this one weird trick which is correlated with scientific progress (<span class="math inline">\(R^2\)</span> = 0.5)</li>
 </ul>
+<p><strong>(2) <a href="./ch5_multilinear.html">Multi Regression</a> 📊 </strong></p>
+<ul>
+<li>You’re worried that the correlation of <em>ice cream</em> and <em>drownings</em> might be because it’s hot outside</li>
+</ul>
+<p><strong>(3)️ <a href="./ch6_DAG.html">Causality</a> 🔀 </strong></p>
+<ul>
+<li><a href="https://x.com/robinhanson/status/1925009123675975702">Oops</a> you can’t just keep adding things to the regression 🫣</li>
+</ul>
+<p><strong>(4)️ <a href="./ch7ModelComparison.html">Model Metrics</a> 🎯 </strong></p>
+<ul>
+<li>Occam’s razor 🪒,</li>
+</ul>
+</section>
+<section id="references" class="level2">
+<h2 class="anchored" data-anchor-id="references">References</h2>
 <p>Source code is on <a href="https://github.com/probably-jaden/Statistical-Rethinking">GitHub</a>.</p>
 
 
