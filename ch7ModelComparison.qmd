@@ -173,10 +173,10 @@ b7.0 <- brm(data = speciesBrain,
             prior = c(
               prior(normal(0.5, 1), class = Intercept),
               prior(normal(0, 1), class = b),
-              prior(exponential(1), class = sigma)
+              prior(lognormal(0,1), class = sigma)
             ),
             iter = 2000, warmup = 500, seed = 4, cores = 4,
-            backend = "cmdstanr", silent = 2, file = "fits/b07.0.4"
+            backend = "cmdstanr", silent = 2, file = "fits/b07.0.5"
             )
 
 b7.0_sim <- as_tibble(b7.0) %>% 
@@ -184,6 +184,11 @@ b7.0_sim <- as_tibble(b7.0) %>%
          simBrainEst = Intercept + (b_mass_z * simMass),
          simBrain = rnorm(n(), simBrainEst, sd = sigma))
 
+```
+
+```{r}
+#| fig-width: 6
+#| fig-height: 4
 
 ggplot() +
   stat_density_2d(data = b7.0_sim, 
@@ -192,9 +197,10 @@ ggplot() +
   scale_fill_viridis_c(option = "magma") +
   geom_point(data = speciesBrain,
              aes(x = mass_z, y = brain_z), 
-             shape = 21, color = "white", fill = "black", lwd = 3, alpha = .8)+
+             shape = 21, color = "white", fill = "black", lwd = 3, alpha = 1, size =2.5)+
   labs(title = "brain ~ mass", subtitle = "Mu estimate") +
   theme_minimal()+
+  ggrepel::geom_text_repel(data = speciesBrain, aes(x = mass_z, y = brain_z, label = species), color = "white", size = 3)+
   # xlim(c(-3,3))+
   # ylim(c(-3,3))+
   scale_x_continuous("body mass (kg)",
@@ -210,5 +216,23 @@ ggplot() +
   guides(fill = "none")
 
 
+```
+
+```{r}
+mass_brain <- speciesBrain %>% 
+  rename("mass_obs" = mass_z,
+         "brain_obs" = brain_z) %>%
+  dplyr::select(c(mass_obs, brain_obs))
+
+
+as_tibble(b7.0) %>%
+  # Add row numbers to track individual draws
+  mutate(draw_id = row_number()) %>%
+  # Create all combinations of draws and new X values
+  crossing(mass_brain) %>% 
+  mutate(brain_mu_pred = b_Intercept + (b_mass_z * brain_obs),
+         brain_mu_resid= brain_obs - brain_pred_mu,
+         brain_mu_
+         )
 ```
 
