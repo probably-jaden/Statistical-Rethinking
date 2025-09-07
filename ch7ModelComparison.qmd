@@ -112,9 +112,8 @@ robust_results %>%
   geom_line(color = "#e74c3c", size = 1.2) +
   geom_point(color = "#e74c3c", size = 2) +
   labs(
-    title = "R² Inflation with Random Covariates (Robust)",
-    subtitle = paste("Average across 30 simulations with", 
-                    max(robust_results$n_covariates), "random covariates"),
+    title = "R² Inflation with Random Covariates",
+    subtitle = paste("Average across 30 simulations with 30 data points", "random covariates"),
     x = "Number of Covariates",
     y = "Mean R²",
     caption = "Shaded area shows 95% confidence interval"
@@ -225,14 +224,14 @@ mass_brain <- speciesBrain %>%
   dplyr::select(c(mass_obs, brain_obs))
 
 
-as_tibble(b7.0) %>%
-  # Add row numbers to track individual draws
-  mutate(draw_id = row_number()) %>%
-  # Create all combinations of draws and new X values
-  crossing(mass_brain) %>% 
-  mutate(brain_mu_pred = b_Intercept + (b_mass_z * brain_obs),
-         brain_mu_resid= brain_obs - brain_pred_mu,
-         brain_mu_
-         )
+# as_tibble(b7.0) %>%
+#   # Add row numbers to track individual draws
+#   mutate(draw_id = row_number()) %>%
+#   # Create all combinations of draws and new X values
+#   crossing(mass_brain) %>% 
+#   mutate(brain_mu_pred = b_Intercept + (b_mass_z * brain_obs),
+#          brain_mu_resid= brain_obs - brain_pred_mu,
+#          brain_rmse = 
+#          )
 ```
 

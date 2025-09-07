@@ -2,19 +2,17 @@ project:
   type: website
 
 website:
-  title: "Statistical Rethinking Portfolio"
+  title: "Jaden's Statistical Rethinking"
   navbar:
     left:
-      - href: index.qmd
-        text: Home
       - href: ch4_linear_regression_polished.qmd
         text: Linear Regression
       - href: ch5_multilinear.qmd
         text: Multi Regression
       - href: ch6_DAG.qmd
-        text: Causal Paths
+        text: Causal Confounds
       - href: ch7ModelComparison.qmd
-        text: Model Comparison
+        text: Model Metrics
 format:
   html:
     theme: cosmo

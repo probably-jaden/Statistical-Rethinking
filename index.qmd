@@ -1,18 +1,58 @@
 ---
-title: "Statistical Rethinking"
-author: "Jaden Earl"
 format: html
 editor: visual
 ---
 
-[Statistical Rethinking](https://oceanrep.geomar.de/id/eprint/55819/1/Statistical%20Rethinking%202nd%20Edition.pdf) has been a fun unlearning of the frequentist techniques that I practised in my undergrad. I appreciated it so much that I wanted to document my current statistical skillset using his textbook as the structure and basebone. Richard McElreath also has a great series on [youtube](https://www.youtube.com/watch?v=FdnMWdICdRs&list=PLDcUM9US4XdPz-KxHM4XHt7uUVGWWVSus) going through each chapter of his book that I highly reccommend as well.
+## What is this?
+This is my documentation of the statistical techniques that I've worked on and plan to work on in the future. There's many other data science skills that I enjoy: deep learning techniques, data pipeline engineering, visualizations. But I won't showcase those here, this page is purely on statistical methods. 
 
-## 📈 [Linear Regression](ch4_linear_regression_polished.qmd)
+The textbook/course [Statistical Rethinking](https://oceanrep.geomar.de/id/eprint/55819/1/Statistical%20Rethinking%202nd%20Edition.pdf) is a fun way to unlearn frequentist methods taught in every STAT 101 class. I appreciate it so much that I am making it the back bone to this project: adopting his chapter structure, his code, and his fiery attitude towards what constitutes good science.
 
-## 📊 [Multi Regression](ch5_multilinear.qmd) 
+## Why Statistics?
 
-## 🔀️ [Causal Paths](ch6_DAG.qmd)
+<details>
+<summary>**Surely machine learning create more accurate predictions than traditional statistical models?**</summary>
 
-## 🎯️ [Model Scoring](ch7ModelComparison.qmd)
+*Machine learning is far more powerful than all of the traditional statistical techniques, but it requires far more data and computation. But there worst feature is that most all deep learning techniques are black boxes. They don't tell you why they predict the things that they predict or what causes what (at least not yet). This is why science papers across all disciplines (including machine learning research) uses statistics to draw their conclusions. Traditional statistical techniques are weaker, but that weakness means they are more understandable to us. That better understanding will allow us to understand our most complicated systems like LLM's, because after all they operate on the same fundamental probability engine.*
+
+</details>
+
+<details>
+<summary>**Businesses say they want data processing, but what they're really saying is they want system automation (e.g. invoices need to be categorized and sent to accounting)?**</summary>
+
+
+*Yes, businesses need lots of automation, but they also need help making decisions. Who to hire, who to let go, what product to sell, at what price to sell, to name a few. These decisions are in a weird gray zone, they require some human judgement but would benefit from computer aid. Statistics are the best set of tools for many of these problems. They allow both humans and computers to add their judgement's to an analysis, getting a better result than either would on their own.*
+
+</details>
+
+<details>
+<summary>**Visualizations are more intuitive and persuasive to audiences. [Our World in Data](https://ourworldindata.org/) has changed more minds than dull economic statistics.**</summary>
+
+
+*Visualizations are what got me interested in statistics in the first place! I love them and try to use them as often as I can. But they're severely constrained in what they can accomplish. You won't be able to easily show how mountain terrain, soil fertility, precipitation, and historical wealth all help predict countries GDP without showing your audience half a dozen maps. Statistical models do what we can't see in a way that we can still understand.*
+
+</details>
+
+
+
+## Index
+
+**(1) [Linear Regression](ch4_linear_regression_polished.qmd) 📈 ** 
+
+- How can we use one variable (e.g. Education) to predict another (e.g. Salary). Doctorates love this one weird trick which is correlated with scientific progress ($R^2$ = 0.5)
+
+**(2) [Multi Regression](ch5_multilinear.qmd) 📊 **
+
+- You're worried that the correlation of *ice cream* and *drownings* might be because it's hot outside
+
+**(3)️ [Causality](ch6_DAG.qmd) 🔀 **
+
+- [Oops](https://x.com/robinhanson/status/1925009123675975702) you can't just keep adding things to the regression 🫣
+
+**(4)️ [Model Metrics](ch7ModelComparison.qmd) 🎯 **
+
+- Occam's razor 🪒, 
+
+## References
 
 Source code is on [GitHub](https://github.com/probably-jaden/Statistical-Rethinking).
