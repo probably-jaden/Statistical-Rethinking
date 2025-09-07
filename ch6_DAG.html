@@ -132,6 +132,10 @@ window.Quarto = {
     <a class="nav-link active" href="./ch6_DAG.html" aria-current="page"> 
 <span class="menu-text">Causal Paths</span></a>
   </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./ch7ModelComparison.html"> 
+<span class="menu-text">Model Comparison</span></a>
+  </li>  
 </ul>
           </div> <!-- /navcollapse -->
             <div class="quarto-navbar-tools">
@@ -177,11 +181,11 @@ window.Quarto = {
 <section id="causal-terror-intro" class="level2">
 <h2 class="anchored" data-anchor-id="causal-terror-intro">Causal Terror Intro</h2>
 <p>“The more likely it is to kill you, if true, the less likely it is to be true. The more boring the topic, the more rigorous the results. How could this widely believed negative correlation exist? There doesn’t seem to be any reason for studies of topics that people care about to produce less reliable results. Maybe popular topics attract more and worse researchers, like flies drawn to the smell of honey? Actually all that is necessary for such a negative correlation to arise is that peer reviewers care about both newsworthiness and trustworthiness.”</p>
-<div class="cell" data-layout-align="center">
+<div class="cell">
 <div class="cell-output-display">
-<div class="quarto-figure quarto-figure-center">
+<div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-1-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="672"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-1-1.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
@@ -193,11 +197,11 @@ window.Quarto = {
 <p>Multicollinearity means very strong correlation between two or more predictor variables. The consequence of it is that the posterior distribution will seem to suggest that none of the variables is reliably associated with the outcome, even if all of the variables are in reality strongly associated with the outcome. In fact, there is nothing wrong with multicollinearity. The model will work fine for prediction, it just frustrates most peoples intuitive understanding of what multi regression does.</p>
 <section id="left-leg-predicts-height-but-right-leg-doesnt" class="level3">
 <h3 class="anchored" data-anchor-id="left-leg-predicts-height-but-right-leg-doesnt">Left leg predicts height but right leg doesn’t?</h3>
-<div class="cell" data-layout-align="center">
+<div class="cell">
 <div class="cell-output-display">
-<div class="quarto-figure quarto-figure-center">
+<div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-2-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="768"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-2-1.png" class="img-fluid figure-img" width="768"></p>
 </figure>
 </div>
 </div>
@@ -205,18 +209,18 @@ window.Quarto = {
 <p><span class="math display">\[\text{Height}_i = \text{Normal}(\mu_i, \sigma)\]</span></p>
 <p><span class="math display">\[\mu_i = \alpha + \beta_\text{1}\text{Left Leg Z}_i +  \beta_\text{2}\text{Right Leg Z}_i\]</span> <span class="math display">\[\alpha = \text{Normal}(170, 10)\]</span></p>
 <p><span class="math display">\[\beta_i = \text{Normal}(0, 3)\]</span> <span class="math display">\[\sigma = \text{Exponential}(3)\]</span></p>
-<div class="cell" data-layout-align="center">
+<div class="cell">
 <div class="cell-output-display">
-<div class="quarto-figure quarto-figure-center">
+<div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="768"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid figure-img" width="768"></p>
 </figure>
 </div>
 </div>
 <div class="cell-output-display">
-<div class="quarto-figure quarto-figure-center">
+<div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-3-2.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="768"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-3-2.png" class="img-fluid figure-img" width="768"></p>
 </figure>
 </div>
 </div>
@@ -233,40 +237,40 @@ window.Quarto = {
 <h3 class="anchored" data-anchor-id="milk-example">Milk Example</h3>
 <p>Using the milk primate data from the last chapter</p>
 <p><span class="math display">\[\mu_\text{milk} = \alpha + \beta_F\text{Fat Percent}_i\]</span></p>
-<div class="cell" data-layout-align="center">
+<div class="cell">
 <div class="cell-output-display">
-<div class="quarto-figure quarto-figure-center">
+<div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-4-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="960"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-4-1.png" class="img-fluid figure-img" width="960"></p>
 </figure>
 </div>
 </div>
 </div>
 <p><span class="math display">\[\mu_\text{milk} = \alpha + \beta_L\text{Lactose Percent}_i\]</span></p>
-<div class="cell" data-layout-align="center">
+<div class="cell">
 <div class="cell-output-display">
-<div class="quarto-figure quarto-figure-center">
+<div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="960"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid figure-img" width="960"></p>
 </figure>
 </div>
 </div>
 </div>
-<div class="cell" data-layout-align="center">
+<div class="cell">
 <div class="cell-output-display">
-<div class="quarto-figure quarto-figure-center">
+<div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="768"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid figure-img" width="768"></p>
 </figure>
 </div>
 </div>
 </div>
 <p>The posterior distributions for <span class="math inline">\(\beta_\text{fat}\)</span> and <span class="math inline">\(\beta_\text{lactose}\)</span> are essentially mirror images of one another. The posterior mean of <span class="math inline">\(\beta_\text{fat}\)</span> is as positive as the mean of <span class="math inline">\(\beta_\text{lactose}\)</span> is negative. Both are narrow posterior distributions that lie almost entirely on one side or the other of zero. Given the strong associ- ation of each predictor with the outcome, we might conclude that both variables are reliable predictors of total energy in milk, across species. The more fat, the more kilocalories in the milk. The more lactose, the fewer kilocalories in milk. But watch what happens when we place both predictor variables in the same regression model:</p>
-<div class="cell" data-layout-align="center">
+<div class="cell">
 <div class="cell-output-display">
-<div class="quarto-figure quarto-figure-center">
+<div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="960"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid figure-img" width="960"></p>
 </figure>
 </div>
 </div>
@@ -275,11 +279,11 @@ window.Quarto = {
 <p>What has happened is that the variables perc.fat and perc.lactose contain much of the same information.</p>
 <p>In the scientific literature, you might encounter a variety of dodgy ways of coping with multicollinearity. Few of them take a causal perspective. Some fields actually teach students to inspect pairwise correlations before fitting a model, to identify and drop highly correlated predictors. This is a mistake. Pairwise correlations are not the problem. It is the conditional associations—not correlations—that matter. And even then, the right thing to do will depend upon what is causing the collinearity. The associations within the data alone are not enough to decide what to do.</p>
 <p>What is likely going on in the milk example is that there is a core tradeoff in milk com- position that mammal mothers must obey. If a species nurses often, then the milk tends to be watery and low in energy. Such milk is high in sugar (lactose). If instead a species nurses rarely, in short bouts, then the milk needs to be higher in energy. Such milk is very high in fat. This implies a causal model something like this:</p>
-<div class="cell" data-layout-align="center">
+<div class="cell">
 <div class="cell-output-display">
-<div class="quarto-figure quarto-figure-center">
+<div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="384"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid figure-img" width="384"></p>
 </figure>
 </div>
 </div>
@@ -296,11 +300,11 @@ window.Quarto = {
 <p><span class="math display">\[ \text{Final Height}_i \sim \text{Normal}(\mu_i, \sigma) \]</span></p>
 <p><span class="math display">\[\mu_i = \text{Initial Height}_i \times p \]</span> If p = 1, the plant hasn’t changed at all from time t = 0 to time t = 1. If p = 2, it has doubled in height. So if we center our prior for p on 1, that implies an expectation of no change in height.</p>
 <p><span class="math display">\[ p \sim \text{Log-Normal(0,  0.25)}\]</span></p>
-<div class="cell" data-layout-align="center">
+<div class="cell">
 <div class="cell-output-display">
-<div class="quarto-figure quarto-figure-center">
+<div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-10-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="960"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-10-1.png" class="img-fluid figure-img" width="960"></p>
 </figure>
 </div>
 </div>
@@ -315,11 +319,11 @@ window.Quarto = {
 <p><span class="math display">\[ \beta_T \sim \text{Normal(0, 0.5)} \]</span> <span class="math display">\[ \beta_F \sim \text{Normal(0, 0.5)} \]</span></p>
 <p><span class="math display">\[ \sigma \sim \text{Exponential(1)} \]</span></p>
 <p>The proportion of growth <span class="math inline">\(p\)</span> is now a function of the predictor variables</p>
-<div class="cell" data-layout-align="center">
+<div class="cell">
 <div class="cell-output-display">
-<div class="quarto-figure quarto-figure-center">
+<div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-11-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="960"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-11-1.png" class="img-fluid figure-img" width="960"></p>
 </figure>
 </div>
 </div>
@@ -330,11 +334,11 @@ window.Quarto = {
 <p><span class="math display">\[\mu_i = \text{Initial Height}_i \times p \]</span></p>
 <p><span class="math display">\[ p = \alpha + \beta_T\text{Treatment}_i\]</span></p>
 <p>The rest of the model is the same as above</p>
-<div class="cell" data-layout-align="center">
+<div class="cell">
 <div class="cell-output-display">
-<div class="quarto-figure quarto-figure-center">
+<div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="960"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid figure-img" width="960"></p>
 </figure>
 </div>
 </div>
@@ -343,11 +347,11 @@ window.Quarto = {
 </section>
 <section id="looking-at-the-dag" class="level3">
 <h3 class="anchored" data-anchor-id="looking-at-the-dag">Looking at the DAG</h3>
-<div class="cell" data-layout-align="center">
+<div class="cell">
 <div class="cell-output-display">
-<div class="quarto-figure quarto-figure-center">
+<div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-13-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="768"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-13-1.png" class="img-fluid figure-img" width="768"></p>
 </figure>
 </div>
 </div>
@@ -358,32 +362,32 @@ window.Quarto = {
 <section id="collider-bias" class="level2">
 <h2 class="anchored" data-anchor-id="collider-bias">Collider Bias</h2>
 <p>Going back to our intro on the the most newsworthy science papers being the less trustworthy we can represent the causal model like this.</p>
-<div class="cell" data-layout-align="center">
+<div class="cell">
 <div class="cell-output-display">
-<div class="quarto-figure quarto-figure-center">
+<div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-14-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="768"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-14-1.png" class="img-fluid figure-img" width="768"></p>
 </figure>
 </div>
 </div>
 </div>
 <p>This is a collider structure, trustworthiness and newsworthiness are statistically associated when looking at S but they are not causally associated. Once you learn that a paper has been selected (S), then learning its trustworthiness (T) also provides information about its newsworthiness (N). Otherwise it wouldn’t have been funded. Why? Because if, for example, a selected proposal has low trustworthiness, then it must have high newsworthiness.</p>
 <p>We can make another collider causal model by thinking that both Happiness levels and Age cause one to get married.</p>
-<div class="cell" data-layout-align="center">
+<div class="cell">
 <div class="cell-output-display">
-<div class="quarto-figure quarto-figure-center">
+<div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-15-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="768"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-15-1.png" class="img-fluid figure-img" width="768"></p>
 </figure>
 </div>
 </div>
 </div>
 <p>Even though there is no causal association between happiness and age, if we condition on marriage (i.e.&nbsp;include it as a predictor in a regression) then we will have a statistical association between age and happiness.</p>
-<div class="cell" data-layout-align="center">
+<div class="cell">
 <div class="cell-output-display">
-<div class="quarto-figure quarto-figure-center">
+<div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="960"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid figure-img" width="960"></p>
 </figure>
 </div>
 </div>
@@ -392,22 +396,22 @@ window.Quarto = {
 <p>If we came across this data and want to ask whether age is related to happiness. You don’t know the true causal model. But you reason, that marriage status might be an important confound. If married people are more or less happy, on average, then you need to condition on marriage status in order to infer the relationship between age and happiness.</p>
 <p>You’re regression model would look like:</p>
 <p><span class="math display">\[\mu_\text{Happiness for individual i} = \alpha_\text{Marriage Status Intercept} + \beta_AA_i\]</span></p>
-<div class="cell" data-layout-align="center">
+<div class="cell">
 <div class="cell-output-display">
-<div class="quarto-figure quarto-figure-center">
+<div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-17-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="960"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-17-1.png" class="img-fluid figure-img" width="960"></p>
 </figure>
 </div>
 </div>
 </div>
 <p>The model is quite sure that age is associated with happiness. What if we omit marital status</p>
 <p><span class="math display">\[ \mu_\text{Happiness for individual i} = \alpha +  \beta_A\text{Age}_i \]</span></p>
-<div class="cell" data-layout-align="center">
+<div class="cell">
 <div class="cell-output-display">
-<div class="quarto-figure quarto-figure-center">
+<div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-18-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="960"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-18-1.png" class="img-fluid figure-img" width="960"></p>
 </figure>
 </div>
 </div>
@@ -417,21 +421,21 @@ window.Quarto = {
 <section id="the-haunted-dag" class="level2">
 <h2 class="anchored" data-anchor-id="the-haunted-dag">The Haunted DAG</h2>
 <p>Collider bias can arise from unobserved variables. Suppose we want to find the direct influence of both parents (<span class="math inline">\(P\)</span>) and grandparents (<span class="math inline">\(G\)</span>) on the educational achievements of children (<span class="math inline">\(C\)</span>). Since grandparents also presumably influence their own children’s education there is an arrow <span class="math inline">\(G \rightarrow P\)</span>.</p>
-<div class="cell" data-layout-align="center">
+<div class="cell">
 <div class="cell-output-display">
-<div class="quarto-figure quarto-figure-center">
+<div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-19-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="288"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-19-1.png" class="img-fluid figure-img" width="288"></p>
 </figure>
 </div>
 </div>
 </div>
 <p>But suppose there are unmeasured, common influences on parents and their children, such as neighborhoods, that are not shared by grandparents (who live on the south coast of Spain now). Then our DAG becomes haunted by the unobserved U:</p>
-<div class="cell" data-layout-align="center">
+<div class="cell">
 <div class="cell-output-display">
-<div class="quarto-figure quarto-figure-center">
+<div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-20-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="384"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-20-1.png" class="img-fluid figure-img" width="384"></p>
 </figure>
 </div>
 </div>
@@ -440,32 +444,32 @@ window.Quarto = {
 <p>For this example we’re going to say that Grandparents <span class="math inline">\(G\)</span> have no direct effect on grandkids <span class="math inline">\(C\)</span>. The example doesn’t depend upon that effect being exactly zero, but it will make the lesson clearer.</p>
 <p>Now what happens when we try to infer the influence of grandparents? Since some of the total effect of grandparents passes through parents, we realize we need to control for parents. Our regression looks like</p>
 <p><span class="math display">\[ \mu_\text{children} = \alpha + \beta_G\text{Grandparents} + \beta_P\text{Parents} \]</span></p>
-<div class="cell" data-layout-align="center">
+<div class="cell">
 <div class="cell-output-display">
-<div class="quarto-figure quarto-figure-center">
+<div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-22-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="960"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-22-1.png" class="img-fluid figure-img" width="960"></p>
 </figure>
 </div>
 </div>
 </div>
 <p>The inferred effect of parents looks too big, almost twice as large as it should be. That isn’t surprising. Some of the correlation between <span class="math inline">\(P\)</span> and <span class="math inline">\(C\)</span> is due to <span class="math inline">\(U\)</span>, and the model doesn’t know about <span class="math inline">\(U\)</span>. That’s a simple confound. More surprising is that the model is confident that the direct effect of grandparents is to hurt their grandkids. The regression is not wrong. But a causal interpretation of that association would be.</p>
-<div class="cell" data-layout-align="center">
+<div class="cell">
 <div class="cell-output-display">
-<div class="quarto-figure quarto-figure-center">
+<div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-23-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="672"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-23-1.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
 </div>
 <p>So how does the negative association arise, when we condition on parents? Conditioning on parents is like looking within sub-populations of parents with similar education. So let’s try that. In Figure 6.5, I’ve highlighted in filled points those parents between the 45th and 60th centiles of education. There is nothing special of this range. It just makes the phenomenon easier to see. Now if we draw a regression line through only these points, regressing <span class="math inline">\(C\)</span> on <span class="math inline">\(G\)</span>, the slope is negative. There is the negative association that our multiple regression finds. But why does it exist?</p>
 <p>It exists because, once we know <span class="math inline">\(P\)</span>, learning <span class="math inline">\(G\)</span> invisibly tells us about the neighborhood <span class="math inline">\(U\)</span>, and <span class="math inline">\(U\)</span> is associated with the outcome <span class="math inline">\(C\)</span>. I know this is confusing. As I keep saying, if you are confused, it is only because you are paying attention. So consider two different parents with the same education level, say for example at the median 50th centile. One of these parents has a highly educated grandparent. The other has a poorly educated grandparent. The only probable way, in this example, for these parents to have the same education is if they live in different types of neighborhoods. We can’t see these neighborhood effects—we haven’t measured them, recall—but the influence of neighborhood is still transmitted to the children <span class="math inline">\(C\)</span>. So for our mythical two parents with the same education, the one with the highly educated grandparent ends up with a less well educated child. The one with the less educated grandparent ends up with the better educated child. <span class="math inline">\(G\)</span> predicts lower <span class="math inline">\(C\)</span>.</p>
-<div class="cell" data-layout-align="center">
+<div class="cell">
 <div class="cell-output-display">
-<div class="quarto-figure quarto-figure-center">
+<div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-24-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="960"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-24-1.png" class="img-fluid figure-img" width="960"></p>
 </figure>
 </div>
 </div>
@@ -475,33 +479,33 @@ window.Quarto = {
 <section id="confronting-confounding" class="level2">
 <h2 class="anchored" data-anchor-id="confronting-confounding">Confronting Confounding</h2>
 <p>Cofounding is when the association between an outcome <span class="math inline">\(Y\)</span> and a predictor <span class="math inline">\(X\)</span> is not the same if we had experimentally determined the values of <span class="math inline">\(X\)</span>. For example if we wanted to see if there was an association between education <span class="math inline">\(E\)</span> and wages <span class="math inline">\(W\)</span>. There are many uobserved variables <span class="math inline">\(U\)</span> which influence both <span class="math inline">\(E\)</span> and <span class="math inline">\(W\)</span>, like where they live, who there parents are, and who are their friends.</p>
-<div class="cell" data-layout-align="center">
+<div class="cell">
 <div class="cell-output-display">
-<div class="quarto-figure quarto-figure-center">
+<div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-25-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="288"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-25-1.png" class="img-fluid figure-img" width="288"></p>
 </figure>
 </div>
 </div>
 </div>
 <p>If we regress <span class="math inline">\(W\)</span> on <span class="math inline">\(E\)</span> the estimate of the causal effect will be confounded by <span class="math inline">\(U\)</span>. It is confounded, because there are two paths connecting <span class="math inline">\(E\)</span> and <span class="math inline">\(W\)</span>: (1) <span class="math inline">\(E \rightarrow W\)</span> and (2) <span class="math inline">\(E \leftarrow U \rightarrow W\)</span>. A “path” here just means any series of variables you could walk through to get from one variable to another, ignoring the directions of the arrows. Both of these paths create a statistical association between <span class="math inline">\(E\)</span> and <span class="math inline">\(W\)</span>. But only the first path is causal. The second path is non-causal. Why? Because if only the second path existed, and we changed <span class="math inline">\(E\)</span>, it would not change <span class="math inline">\(W\)</span>. Any causal influence of <span class="math inline">\(E\)</span> on <span class="math inline">\(W\)</span> operates only on the first path.</p>
 <p>We normally address this by running an experiment where we assign the education level at random. This cuts off the influence of <span class="math inline">\(U\)</span> on <span class="math inline">\(E\)</span>:</p>
-<div class="cell" data-layout-align="center">
+<div class="cell">
 <div class="cell-output-display">
-<div class="quarto-figure quarto-figure-center">
+<div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-26-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="288"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-26-1.png" class="img-fluid figure-img" width="288"></p>
 </figure>
 </div>
 </div>
 </div>
 <section id="four-fundamental-dags" class="level3">
 <h3 class="anchored" data-anchor-id="four-fundamental-dags">Four Fundamental DAGS</h3>
-<div class="cell" data-layout-align="center">
+<div class="cell">
 <div class="cell-output-display">
-<div class="quarto-figure quarto-figure-center">
+<div>
 <figure class="figure">
-<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-27-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="960"></p>
+<p><img src="ch6_DAG_files/figure-html/unnamed-chunk-27-1.png" class="img-fluid figure-img" width="960"></p>
 </figure>
 </div>
 </div>
