@@ -19,6 +19,7 @@ library(patchwork)
 library(GGally)
 library(dagitty)
 library(ggdag)
+library(ggrepel)
 
 library(rethinking)
 data(milk)
@@ -145,7 +146,7 @@ speciesBrain <-
 ggplot(data = speciesBrain, aes(x = mass, y = brain))+
   geom_point(shape = 21, color = "blue4", fill = "white")+
   theme_minimal()+
-  geom_text_repel(aes(label = species), size = 3)+
+  ggrepel::geom_text_repel(aes(label = species), size = 3)+
   labs(x = "body mass (kg)", y = "brain volume (cc)")
 ```
 
@@ -183,7 +184,6 @@ b7.0_sim <- as_tibble(b7.0) %>%
          simBrainEst = Intercept + (b_mass_z * simMass),
          simBrain = rnorm(n(), simBrainEst, sd = sigma))
 
-hist(b7.0_sim$b_mass_z)
 
 ggplot() +
   stat_density_2d(data = b7.0_sim, 
