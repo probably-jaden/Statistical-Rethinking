@@ -22,6 +22,7 @@ library(ggdag)
 library(ggrepel)
 
 library(rethinking)
+detach(package:rethinking, unload = T)
 data(milk)
 
 at <- c(-3, -2, -1, 0, 1, 2, 3)
@@ -142,12 +143,23 @@ speciesBrain <-
          brain   = c(438, 452, 612, 521, 752, 871, 1350), 
          mass    = c(37.0, 35.5, 34.5, 41.5, 55.5, 61.0, 53.5))
 
-ggplot(data = speciesBrain, aes(x = mass, y = brain))+
-  geom_point(shape = 21, color = "blue4", fill = "white")+
+p1 <- ggplot(data = speciesBrain, aes(x = mass, y = brain))+
+  geom_point(shape = 21, color = "dodgerblue2", fill = "blue4", size =3)+
   theme_minimal()+
   ggrepel::geom_text_repel(aes(label = species), size = 3)+
   labs(x = "body mass (kg)", y = "brain volume (cc)")
+
+p1
+
+p1_built <- ggplot_build(p1)
+# Extract the axis limits and breaks
+x_limits <- p1_built$layout$panel_params[[1]]$x.range
+y_limits <- p1_built$layout$panel_params[[1]]$y.range
+
+x_limits_z <- (x_limits - mean(speciesBrain$mass))/sd(speciesBrain$mass)
 ```
+
+### Linear
 
 Simplest model is a linear one. 
 
@@ -166,72 +178,289 @@ speciesBrain <- speciesBrain %>%
   mutate(mass_z = (mass - mean(mass))/sd(mass),
          brain_z = (brain - mean(brain))/sd(brain))
 
+R2_fun<- function(brm_fit, seed = 7, ...) {
+  set.seed(seed)
+  p <- predict(brm_fit, summary = F, ...)
+  # in my experience, it's more typical to define residuals as the criterion minus the predictions
+  r <- speciesBrain$brain_z - apply(p, 2, mean)
+  1 - rethinking::var2(r) / rethinking::var2(speciesBrain$brain_z )
+}
+
+
+```
+
+
+
+```{r make poly models}
 b7.0 <- brm(data = speciesBrain,
             family = gaussian,
             brain_z ~ 1 + mass_z,
             prior = c(
               prior(normal(0.5, 1), class = Intercept),
-              prior(normal(0, 1), class = b),
+              prior(normal(0, 3), class = b),
               prior(lognormal(0,1), class = sigma)
             ),
             iter = 2000, warmup = 500, seed = 4, cores = 4,
-            backend = "cmdstanr", silent = 2, file = "fits/b07.0.5"
+            backend = "cmdstanr", silent = 2, file = "fits/b07.0.6"
             )
 
-b7.0_sim <- as_tibble(b7.0) %>% 
-  mutate(simMass = seq(from = -3, to = 3, length.out = n()),
-         simBrainEst = Intercept + (b_mass_z * simMass),
-         simBrain = rnorm(n(), simBrainEst, sd = sigma))
+#quadratic
+b7.1 <- brm(data = speciesBrain,
+            family = gaussian,
+            brain_z ~ 1 + mass_z + I(mass_z^2),
+            prior = c(
+              prior(normal(0.5, 1), class = Intercept),
+              prior(normal(0, 3), class = b),
+              prior(lognormal(0,1), class = sigma)
+            ),
+            iter = 2000, warmup = 500, seed = 4, cores = 4,
+            backend = "cmdstanr", silent = 2, file = "fits/b07.1.0"
+            )
+
+#cubic
+b7.2 <- brm(data = speciesBrain,
+            family = gaussian,
+            brain_z ~ 1 + mass_z + I(mass_z^2) + I(mass_z^3),
+            prior = c(
+              prior(normal(0.5, 1), class = Intercept),
+              prior(normal(0, 3), class = b),
+              prior(lognormal(0,1), class = sigma)
+            ),
+            iter = 2000, warmup = 500, seed = 4, cores = 4,
+            backend = "cmdstanr", silent = 2, file = "fits/b07.2.0"
+            )
+
+b7.3 <- brm(data = speciesBrain,
+            family = gaussian,
+            brain_z ~ 1 + mass_z + I(mass_z^2) + I(mass_z^3) + I(mass_z^4),
+            prior = c(
+              prior(normal(0.5, 1), class = Intercept),
+              prior(normal(0, 3), class = b),
+              prior(lognormal(0,1), class = sigma)
+            ),
+            iter = 2000, warmup = 500, seed = 4, cores = 4,
+            backend = "cmdstanr", silent = 2, file = "fits/b07.3.0"
+            )
+
+b7.4 <- brm(data = speciesBrain,
+            family = gaussian,
+            brain_z ~ 1 + mass_z + I(mass_z^2) + I(mass_z^3) + I(mass_z^4) + I(mass_z^5),
+            prior = c(
+              prior(normal(0.5, 1), class = Intercept),
+              prior(normal(0, 3), class = b),
+              prior(lognormal(0,1), class = sigma)
+            ),
+            iter = 2000, warmup = 500, seed = 4, cores = 4, adapt_delta = 0.99,
+            backend = "cmdstanr", silent = 2, file = "fits/b07.4.1",
+            )
+
+b7.5 <- brm(data = speciesBrain,
+            family = gaussian,
+            brain_z ~ 1 + mass_z + I(mass_z^2) + I(mass_z^3) + I(mass_z^4) + I(mass_z^5) + I(mass_z^6),
+            prior = c(
+              prior(normal(0.5, 1), class = Intercept),
+              prior(normal(0, 3), class = b),
+              prior(lognormal(0,1), class = sigma)
+            ),
+            iter = 2000, warmup = 500, seed = 4, cores = 4, adapt_delta = 0.999, max_treedepth = 15, 
+            backend = "cmdstanr", silent = 2, file = "fits/b07.5.2"
+            )
+
 
 ```
 
-```{r}
-#| fig-width: 6
-#| fig-height: 4
+```{r get heat map draws}
+
+simulate_brain_model <- function(model_samples, polynomial_terms = 1) {
+  as_tibble(model_samples) %>% 
+    mutate(
+      simMass = seq(from = min(speciesBrain$mass_z), to = max(speciesBrain$mass_z), length.out = n()),
+      simBrainEst = if (polynomial_terms == 1) {
+        Intercept + (b_mass_z * simMass)
+      } else if (polynomial_terms == 2) {
+        Intercept + (b_mass_z * simMass) + (b_Imass_zE2 * simMass^2)
+      } else if (polynomial_terms == 3) {
+        Intercept + (b_mass_z * simMass) + (b_Imass_zE2 * simMass^2) + (b_Imass_zE3 * simMass^3)
+      } else if (polynomial_terms == 4) {
+        Intercept + (b_mass_z * simMass) + (b_Imass_zE2 * simMass^2) + (b_Imass_zE3 * simMass^3) + (b_Imass_zE4 * simMass^4)
+      } else if (polynomial_terms == 5) {
+        Intercept + (b_mass_z * simMass) + (b_Imass_zE2 * simMass^2) + (b_Imass_zE3 * simMass^3) + (b_Imass_zE4 * simMass^4) + (b_Imass_zE5 * simMass^5)
+      } else if (polynomial_terms == 6) {
+        Intercept + (b_mass_z * simMass) + (b_Imass_zE2 * simMass^2) + (b_Imass_zE3 * simMass^3) + (b_Imass_zE4 * simMass^4) + (b_Imass_zE5 * simMass^5) + (b_Imass_zE6 * simMass^6)
+      },
+      simBrain = rnorm(n(), simBrainEst, sd = sigma),
+      simMass_orig = simMass * sd(speciesBrain$mass) + mean(speciesBrain$mass),
+      simBrainEst_orig = simBrainEst * sd(speciesBrain$brain) + mean(speciesBrain$brain),
+      simBrain_orig = simBrain * sd(speciesBrain$brain) + mean(speciesBrain$brain)
+    )
+}
+
+b7.0_sim <- simulate_brain_model(b7.0, polynomial_terms = 1)
+b7.1_sim <- simulate_brain_model(b7.1, polynomial_terms = 2)
+b7.2_sim <- simulate_brain_model(b7.2, polynomial_terms = 3)
+b7.3_sim <- simulate_brain_model(b7.3, polynomial_terms = 4)
+b7.4_sim <- simulate_brain_model(b7.4, polynomial_terms = 5)
+b7.5_sim <- simulate_brain_model(b7.5, polynomial_terms = 6)
+
+```
+
+```{r draw lines}
+#| eval: false
+
+new_data_sim <- tibble(mass_z = seq(from = x_limits_z[[1]], to = x_limits_z[[2]], length.out = 60))
+brain_loo_lines <- function(brms_fit, row, ...) {
+  
+  # # refit the model
+  new_fit <-
+    update(brms_fit,
+           newdata = filter(speciesBrain, row_number() != row),
+           iter = 2000, warmup = 1000, chains = 4, cores = 4,
+           seed = 7,
+           refresh = 0,
+           ...)
+  
+  # pull the lines values
+  fitted(new_fit, 
+         newdata = new_data_sim) %>% 
+    data.frame() %>% 
+    select(Estimate) %>% 
+    bind_cols(new_data_sim)
+}
+
+
+b7.0_fits <-
+  tibble(row = 1:7) %>% 
+  mutate(post = purrr::map(row, ~brain_loo_lines(brms_fit = b7.0, row = .))) %>% 
+  unnest(post) %>% 
+  filter(Estimate >= min(speciesBrain$brain_z) - (1.5 *sd(speciesBrain$brain_z)) & Estimate <=  max(speciesBrain$brain_z) + (1.5 *sd(speciesBrain$brain_z)))
+
+b7.1_fits <-
+  tibble(row = 1:7) %>% 
+  mutate(post = purrr::map(row, ~brain_loo_lines(brms_fit = b7.1, row = .))) %>% 
+  unnest(post) %>% 
+  filter(Estimate >= min(speciesBrain$brain_z) -(1.5 * sd(speciesBrain$brain_z)) & Estimate <=  max(speciesBrain$brain_z) + (1.5 *sd(speciesBrain$brain_z)))
+
+b7.2_fits <-
+  tibble(row = 1:7) %>% 
+  mutate(post = purrr::map(row, ~brain_loo_lines(brms_fit = b7.2, row = .))) %>% 
+  unnest(post) %>% 
+  filter(Estimate >= min(speciesBrain$brain_z) - (1.5 *sd(speciesBrain$brain_z)) & Estimate <=  max(speciesBrain$brain_z) + (1.5 *sd(speciesBrain$brain_z)))
+
+b7.3_fits <-
+  tibble(row = 1:7) %>% 
+  mutate(post = purrr::map(row, ~brain_loo_lines(brms_fit = b7.3, row = .))) %>% 
+  unnest(post) %>% 
+  filter(Estimate >= min(speciesBrain$brain_z) - (1.5 *sd(speciesBrain$brain_z)) & Estimate <=  max(speciesBrain$brain_z) + (1.5 *sd(speciesBrain$brain_z)))
+
+b7.4_fits <-
+  tibble(row = 1:7) %>% 
+  mutate(post = purrr::map(row, ~brain_loo_lines(brms_fit = b7.4, row = .))) %>% 
+  unnest(post) %>% 
+  filter(Estimate >= min(speciesBrain$brain_z) - (1.5 *sd(speciesBrain$brain_z)) & Estimate <=  max(speciesBrain$brain_z) + (1.5 *sd(speciesBrain$brain_z)))
+
+
+b7.5_fits <-
+  tibble(row = 1:7) %>% 
+  mutate(post = purrr::map(row, ~brain_loo_lines(brms_fit = b7.5, row = .))) %>% 
+  unnest(post) %>% 
+  filter(Estimate >= min(speciesBrain$brain_z) - (1.5 * sd(speciesBrain$brain_z)) & Estimate <= (1.5 * max(speciesBrain$brain_z) + sd(speciesBrain$brain_z)))
+
+
+```
+
+
+```{r linear plot}
 
 ggplot() +
+  labs(title = "Linear",x = "body mass (kg)", y = "brain volume (cc)") +
+  theme_minimal() +
+  guides(fill = "none")+
+  coord_cartesian(xlim = x_limits * c(0.99, 1.01),
+                  ylim = y_limits * c(0.99, 1.01)) +
   stat_density_2d(data = b7.0_sim, 
-                  aes(x = simMass, y = simBrainEst, fill = after_stat(ndensity)),
-                  geom = "raster", contour = FALSE) +
+                   aes(x = simMass_orig, y = simBrainEst_orig, fill = after_stat(ndensity)),
+                   geom = "raster", contour = FALSE) +
   scale_fill_viridis_c(option = "magma") +
   geom_point(data = speciesBrain,
-             aes(x = mass_z, y = brain_z), 
-             shape = 21, color = "white", fill = "black", lwd = 3, alpha = 1, size =2.5)+
-  labs(title = "brain ~ mass", subtitle = "Mu estimate") +
-  theme_minimal()+
-  ggrepel::geom_text_repel(data = speciesBrain, aes(x = mass_z, y = brain_z, label = species), color = "white", size = 3)+
-  # xlim(c(-3,3))+
-  # ylim(c(-3,3))+
-  scale_x_continuous("body mass (kg)",
-                     breaks = at,
-                     labels = round(at * sd(speciesBrain$mass) +
-                                      mean(speciesBrain$mass)),
-                     limits = c(min(speciesBrain$mass_z), max(speciesBrain$mass_z))* 1.5 * sd(speciesBrain$brain_z)) +
-  scale_y_continuous("brain volume (cc)",
-                     breaks = at,
-                     labels = round(at * sd(speciesBrain$brain) +
-                                      mean(speciesBrain$brain)),
-                     limits = c(min(speciesBrain$brain_z), max(speciesBrain$brain_z)) * 1.5 * sd(speciesBrain$brain_z))+
-  guides(fill = "none")
+             aes(x = mass, y = brain), 
+             shape = 21, color = "white", fill = "black", lwd = 3, alpha = 1, size = 2.5) +
+  ggrepel::geom_text_repel(data = speciesBrain, 
+                          aes(x = mass, y = brain, label = species), 
+                          size = 4, color = "white",
+                          box.padding = 2.5, point.padding = 1)
+```
+This model has an $R^2$ value of `r round(R2_fun(b7.0), 2)`
+
+### Polynomial
+
+For some comparison models we can add polynomial terms of *Mass* to our regression. For example the scond degee polynomial that relates body size to brain size is a parabola which has this form:
+
+$$\mu_i = \alpha + \beta_1\text{Body Mass}_i + \beta_2(\text{Body Mass}_i)^2$$
+We'll make 4 more models like this each adding another polynomial term like $\beta_3(\text{Body Mass}_i)^3$, $\beta_4(\text{Body Mass}_i)^4$... etc
+
+Below are our six models posterior $mu$'s plotted with the data. *Note this is not the posterior predictive distribution since it doesn't include $sigma$ 
+
+In the figure below I've plotted both the heat map for where the model thinks the $\mu$ estimate should be given all of the data. Additionally I've plotted golden lines where I get the best fit lines if I refitted the model by leaving out a different data point each time. This is a "Leave One Out" (LOO) sort of method that helps us see how good our model would do if we didn't have one of our data points and we wanted to predict it. There are seven of these best fit lines in each model because there are seven different data points we can drop.
+
+For the simple linear 1st order regression we could remove any one point from the sample and get pretty much the same regression line. In contrast, the most complex model 6th order is very sensitive to the sample. The predicted mean would change course a lot, if we removed any one point from the sample. You can see the truth of this in the below plots. On the top left, each line is the best fit for the linear regression.  The curves on the bottom right are instead different sixth-order polynomials. Notice that the straight lines hardly vary, while the curves fly about wildly.
+
+ 
+```{r}
+#| eval: false
+
+base_plt2 <- ggplot() +
+  # labs(title = "brain ~ mass", subtitle = "Mu estimate",
+  #      x = "body mass (kg)", y = "brain volume (cc)") +
+  theme_minimal() +
+  guides(fill = "none")+
+  coord_cartesian(xlim = x_limits * c(0.995, 1.005),
+                  ylim = y_limits * c(0.995, 1.005))
+
+add_heatmap_and_points <- function(base_plot, sim_data, fit_lines) {
+  base_plot +
+    stat_density_2d(data = sim_data, 
+                     aes(x = simMass_orig, y = simBrainEst_orig, fill = after_stat(ndensity)),
+                     geom = "raster", contour = FALSE) +
+    scale_fill_viridis_c(option = "magma") +
+    geom_point(data = speciesBrain,
+               aes(x = mass, y = brain), 
+               shape = 21, color = "white", fill = "black", lwd = 3, alpha = 1, size = 2.5) +
+    theme(
+      axis.text.x = element_blank(),
+      axis.text.y = element_blank(),
+      axis.ticks.x = element_blank(),
+      axis.ticks.y = element_blank(),
+      axis.title.x = element_blank(),
+      axis.title.y = element_blank()
+    ) + 
+    geom_line(data = fit_lines, aes(x = (mass_z * sd(speciesBrain$mass)) + mean(speciesBrain$mass),
+                                y = (Estimate * sd(speciesBrain$brain)) + mean(speciesBrain$brain), group = row),
+          color = "gold1", alpha = .5)
+}
+
+p2.0 <- add_heatmap_and_points(base_plt2, b7.0_sim, b7.0_fits) + labs(title = "Linear") + theme(plot.title = element_text(size = 10))
+p2.1 <- add_heatmap_and_points(base_plt2, b7.1_sim, b7.1_fits) + labs(title = "Quadratic") + theme(plot.title = element_text(size = 10))
+p2.2 <- add_heatmap_and_points(base_plt2, b7.2_sim, b7.2_fits) + labs(title = "Cubic") + theme(plot.title = element_text(size = 10))
+p2.3 <- add_heatmap_and_points(base_plt2, b7.3_sim, b7.3_fits) + labs(title = "4th order") + theme(plot.title = element_text(size = 10))
+p2.4 <- add_heatmap_and_points(base_plt2, b7.4_sim, b7.4_fits) + labs(title = "5th order") + theme(plot.title = element_text(size = 10))
+p2.5 <- add_heatmap_and_points(base_plt2, b7.5_sim, b7.5_fits) + labs(title = "6th order") + theme(plot.title = element_text(size = 10))
 
 
+polyCompPlt <- p2.0 + p2.1 + p2.2 + p2.3 + p2.4 + p2.5
+
+saveRDS(polyCompPlt, "plots/polyCompPlt.rds")
 ```
 
 ```{r}
-mass_brain <- speciesBrain %>% 
-  rename("mass_obs" = mass_z,
-         "brain_obs" = brain_z) %>%
-  dplyr::select(c(mass_obs, brain_obs))
+#| fig-width: 10
+#| fig-height: 6
 
-
-# as_tibble(b7.0) %>%
-#   # Add row numbers to track individual draws
-#   mutate(draw_id = row_number()) %>%
-#   # Create all combinations of draws and new X values
-#   crossing(mass_brain) %>% 
-#   mutate(brain_mu_pred = b_Intercept + (b_mass_z * brain_obs),
-#          brain_mu_resid= brain_obs - brain_pred_mu,
-#          brain_rmse = 
-#          )
+readRDS("plots/polyCompPlt.rds")
 ```
 
+
+The overfit polynomial models manage to fit the data extremely well, but they suffer for this within-sample accuracy by making nonsensical out-of- sample predictions. In contrast, underfitting produces models that are inaccurate both within and out of sample. They have learned too little, failing to recover regular features of the sample.
+
+Another perspective on the absurd models just above is to consider that model fitting can be considered a form of data compression. Parameters summarize relationships among the data. These summaries compress the data into a simpler form, although with loss of information (“lossy” compression) about the sample. The parameters can then be used to generate new data, effectively decompressing the data.
+
+When a model has a parameter to correspond to each datum, then there is actually no compression. The model just encodes the raw data in a different form, using parameters instead. As a result, we learn nothing about the data from such a model. Learning about the data requires using a simpler model that achieves some compression, but not too much. This view of model selection is often known as Minimum Description Length (MDL).

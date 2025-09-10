@@ -24,12 +24,16 @@ _site/
 *.html
 
 # ===============================
-# Model fits / large objects
+# Model fits / images / large objects
 # ===============================
 fits/
+plots/
 *.rds
 *.RData
 *.rda
+
+
+
 
 # ===============================
 # Miscellaneous
