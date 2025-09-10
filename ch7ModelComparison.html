@@ -153,6 +153,8 @@ window.Quarto = {
   <li><a href="#the-problem-with-parameters" id="toc-the-problem-with-parameters" class="nav-link" data-scroll-target="#the-problem-with-parameters">The Problem with Parameters</a>
   <ul class="collapse">
   <li><a href="#brain-body-vignette" id="toc-brain-body-vignette" class="nav-link" data-scroll-target="#brain-body-vignette">Brain Body Vignette</a></li>
+  <li><a href="#linear" id="toc-linear" class="nav-link" data-scroll-target="#linear">Linear</a></li>
+  <li><a href="#polynomial" id="toc-polynomial" class="nav-link" data-scroll-target="#polynomial">Polynomial</a></li>
   </ul></li>
   </ul></li>
   </ul>
@@ -206,6 +208,9 @@ window.Quarto = {
 </div>
 </div>
 </div>
+</section>
+<section id="linear" class="level3">
+<h3 class="anchored" data-anchor-id="linear">Linear</h3>
 <p>Simplest model is a linear one.</p>
 <p><span class="math display">\[\text{Brain Size}_i \sim \text{Normal}(\mu_i, \sigma)\]</span></p>
 <p><span class="math display">\[\mu_i = \alpha + \beta_b\text{Body Mass}_i\]</span></p>
@@ -216,11 +221,32 @@ window.Quarto = {
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="ch7ModelComparison_files/figure-html/unnamed-chunk-4-1.png" class="img-fluid figure-img" width="576"></p>
+<p><img src="ch7ModelComparison_files/figure-html/linear plot-1.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
 </div>
+<p>This model has an <span class="math inline">\(R^2\)</span> value of 0.48</p>
+</section>
+<section id="polynomial" class="level3">
+<h3 class="anchored" data-anchor-id="polynomial">Polynomial</h3>
+<p>For some comparison models we can add polynomial terms of <em>Mass</em> to our regression. For example the scond degee polynomial that relates body size to brain size is a parabola which has this form:</p>
+<p><span class="math display">\[\mu_i = \alpha + \beta_1\text{Body Mass}_i + \beta_2(\text{Body Mass}_i)^2\]</span> We’ll make 4 more models like this each adding another polynomial term like <span class="math inline">\(\beta_3(\text{Body Mass}_i)^3\)</span>, <span class="math inline">\(\beta_4(\text{Body Mass}_i)^4\)</span>… etc</p>
+<p>Below are our six models posterior <span class="math inline">\(mu\)</span>’s plotted with the data. *Note this is not the posterior predictive distribution since it doesn’t include <span class="math inline">\(sigma\)</span></p>
+<p>In the figure below I’ve plotted both the heat map for where the model thinks the <span class="math inline">\(\mu\)</span> estimate should be given all of the data. Additionally I’ve plotted golden lines where I get the best fit lines if I refitted the model by leaving out a different data point each time. This is a “Leave One Out” (LOO) sort of method that helps us see how good our model would do if we didn’t have one of our data points and we wanted to predict it. There are seven of these best fit lines in each model because there are seven different data points we can drop.</p>
+<p>For the simple linear 1st order regression we could remove any one point from the sample and get pretty much the same regression line. In contrast, the most complex model 6th order is very sensitive to the sample. The predicted mean would change course a lot, if we removed any one point from the sample. You can see the truth of this in the below plots. On the top left, each line is the best fit for the linear regression. The curves on the bottom right are instead different sixth-order polynomials. Notice that the straight lines hardly vary, while the curves fly about wildly.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ch7ModelComparison_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid figure-img" width="960"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The overfit polynomial models manage to fit the data extremely well, but they suffer for this within-sample accuracy by making nonsensical out-of- sample predictions. In contrast, underfitting produces models that are inaccurate both within and out of sample. They have learned too little, failing to recover regular features of the sample.</p>
+<p>Another perspective on the absurd models just above is to consider that model fitting can be considered a form of data compression. Parameters summarize relationships among the data. These summaries compress the data into a simpler form, although with loss of information (“lossy” compression) about the sample. The parameters can then be used to generate new data, effectively decompressing the data.</p>
+<p>When a model has a parameter to correspond to each datum, then there is actually no compression. The model just encodes the raw data in a different form, using parameters instead. As a result, we learn nothing about the data from such a model. Learning about the data requires using a simpler model that achieves some compression, but not too much. This view of model selection is often known as Minimum Description Length (MDL).</p>
 
 
 </section>
