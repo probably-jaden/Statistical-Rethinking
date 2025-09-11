@@ -1,0 +1,8 @@
+---
+title: "ch8_conditional_manatees"
+editor: visual
+execute:
+  echo: false
+  warning: false
+  message: false
+---
