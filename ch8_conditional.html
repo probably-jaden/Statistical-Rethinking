@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>ch4 – Jaden’s Statistical Rethinking</title>
+<title>ch8_conditional_manatees – Jaden’s Statistical Rethinking</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -104,7 +104,7 @@ ul.task-list li input[type="checkbox"] {
 <span class="menu-text">Model Metrics</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./ch8_conditional.html"> 
+    <a class="nav-link active" href="./ch8_conditional.html" aria-current="page"> 
 <span class="menu-text">Interactions</span></a>
   </li>  
 </ul>
@@ -118,44 +118,15 @@ ul.task-list li input[type="checkbox"] {
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
 <!-- margin-sidebar -->
-    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
-        <nav id="TOC" role="doc-toc" class="toc-active">
-    <h2 id="toc-title">On this page</h2>
-   
-  <ul>
-  <li><a href="#first-model" id="toc-first-model" class="nav-link active" data-scroll-target="#first-model">4.3.1 First Model</a></li>
-  <li><a href="#eda-kung-height-weight-gender" id="toc-eda-kung-height-weight-gender" class="nav-link" data-scroll-target="#eda-kung-height-weight-gender">EDA !Kung Height ~ Weight + Gender</a>
-  <ul class="collapse">
-  <li><a href="#plotting-the-prior" id="toc-plotting-the-prior" class="nav-link" data-scroll-target="#plotting-the-prior">Plotting the Prior</a></li>
-  <li><a href="#grid-approximation-technique" id="toc-grid-approximation-technique" class="nav-link" data-scroll-target="#grid-approximation-technique">Grid approximation technique</a></li>
-  <li><a href="#sample-from-the-posterior" id="toc-sample-from-the-posterior" class="nav-link" data-scroll-target="#sample-from-the-posterior">Sample from the Posterior</a></li>
-  <li><a href="#model-intercept-only" id="toc-model-intercept-only" class="nav-link" data-scroll-target="#model-intercept-only">model intercept only</a></li>
-  </ul></li>
-  <li><a href="#adding-linear-predictor" id="toc-adding-linear-predictor" class="nav-link" data-scroll-target="#adding-linear-predictor">Adding Linear Predictor</a></li>
-  <li><a href="#model-and-plot-quadratic-kung-height" id="toc-model-and-plot-quadratic-kung-height" class="nav-link" data-scroll-target="#model-and-plot-quadratic-kung-height">model and plot Quadratic !Kung height</a>
-  <ul class="collapse">
-  <li><a href="#polynomial-cubic-model-kung-height" id="toc-polynomial-cubic-model-kung-height" class="nav-link" data-scroll-target="#polynomial-cubic-model-kung-height">polynomial (Cubic) model !Kung height</a></li>
-  <li><a href="#plot-polynomial-cubic-kung-height" id="toc-plot-polynomial-cubic-kung-height" class="nav-link" data-scroll-target="#plot-polynomial-cubic-kung-height">plot Polynomial (Cubic) !Kung height</a></li>
-  </ul></li>
-  <li><a href="#splines" id="toc-splines" class="nav-link" data-scroll-target="#splines">Splines!</a>
-  <ul class="collapse">
-  <li><a href="#eda-cherry-blossom-data" id="toc-eda-cherry-blossom-data" class="nav-link" data-scroll-target="#eda-cherry-blossom-data">EDA cherry blossom data</a></li>
-  <li><a href="#spline-model-cherry-blossom" id="toc-spline-model-cherry-blossom" class="nav-link" data-scroll-target="#spline-model-cherry-blossom">Spline Model Cherry Blossom</a></li>
-  <li><a href="#plots-cherry-blossom" id="toc-plots-cherry-blossom" class="nav-link" data-scroll-target="#plots-cherry-blossom">Plots Cherry Blossom</a></li>
-  </ul></li>
-  <li><a href="#hard-questions" id="toc-hard-questions" class="nav-link" data-scroll-target="#hard-questions">Hard Questions</a>
-  <ul class="collapse">
-  <li><a href="#h1" id="toc-h1" class="nav-link" data-scroll-target="#h1">4H1</a></li>
-  </ul></li>
-  </ul>
-</nav>
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
+        
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">ch4</h1>
+<h1 class="title">ch8_conditional_manatees</h1>
 </div>
 
 
@@ -172,253 +143,19 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<section id="first-model" class="level2">
-<h2 class="anchored" data-anchor-id="first-model">4.3.1 First Model</h2>
-<p>!khun</p>
-</section>
-<section id="eda-kung-height-weight-gender" class="level2">
-<h2 class="anchored" data-anchor-id="eda-kung-height-weight-gender">EDA !Kung Height ~ Weight + Gender</h2>
-<div class="cell">
-<div class="cell-output-display">
-<div>
+<p>The Armstrong Whitworth A.W.38 Whitley was a frontline Royal Air Force bomber. During the second World War, the A.W.38 carried bombs and pamphlets into German territory. The A.W.38 has fierce natural enemies: artillery and interceptor fire. Many planes never returned from their missions. And those that survived had the scars to prove it. Most observers intuit that helping bombers means reducing the kind of damage we see on them, perhaps by adding armor to the parts of the plane that show the most damage.</p>
+<p>Up-armoring the damaged portions of returning bombers did little good. Instead, improving the A.W.38 bomber meant armoring the undamaged sections. The evidence from surviving bombers is misleading, because it is conditional on survival. Bombers that returned home conspicuously lacked damage to the cockpit and engines. They got lucky. Bombers that never returned home were less so. To get the right answer, in either context, we have to realize that the kind of damage seen is conditional on survival.</p>
+<div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="ch4_linear_regression_files/figure-html/unnamed-chunk-1-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="plots/airplane.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:50.0%"></p>
 </figure>
 </div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="ch4_linear_regression_files/figure-html/unnamed-chunk-1-2.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="ch4_linear_regression_files/figure-html/unnamed-chunk-1-3.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-</div>
-<section id="plotting-the-prior" class="level3">
-<h3 class="anchored" data-anchor-id="plotting-the-prior">Plotting the Prior</h3>
-<div class="cell">
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="ch4_linear_regression_files/figure-html/Priors for Kung! height-1.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="ch4_linear_regression_files/figure-html/Priors for Kung! height-2.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-</div>
-</section>
-<section id="grid-approximation-technique" class="level3">
-<h3 class="anchored" data-anchor-id="grid-approximation-technique">Grid approximation technique</h3>
-<div class="cell">
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="ch4_linear_regression_files/figure-html/unnamed-chunk-2-1.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-</div>
-<div class="cell">
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="ch4_linear_regression_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-</div>
-</section>
-<section id="sample-from-the-posterior" class="level3">
-<h3 class="anchored" data-anchor-id="sample-from-the-posterior">Sample from the Posterior</h3>
-<div class="cell">
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="ch4_linear_regression_files/figure-html/unnamed-chunk-4-1.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-</div>
-</section>
-<section id="model-intercept-only" class="level3">
-<h3 class="anchored" data-anchor-id="model-intercept-only">model intercept only</h3>
-<div class="cell">
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="ch4_linear_regression_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-</div>
-<section id="extremely-narrow-priors" class="level4">
-<h4 class="anchored" data-anchor-id="extremely-narrow-priors">Extremely Narrow Priors</h4>
-<div class="cell">
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="ch4_linear_regression_files/figure-html/bad priors-1.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="ch4_linear_regression_files/figure-html/bad priors-2.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-</div>
-</section>
-</section>
-</section>
-<section id="adding-linear-predictor" class="level2">
-<h2 class="anchored" data-anchor-id="adding-linear-predictor">Adding Linear Predictor</h2>
-<div class="cell">
-<div class="cell-output cell-output-stdout">
-<pre><code>            b_Intercept b_weight_c sigma
-b_Intercept        1.00      -0.04  0.02
-b_weight_c        -0.04       1.00  0.01
-sigma              0.02       0.01  1.00</code></pre>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="ch4_linear_regression_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-</div>
-<div class="cell">
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="ch4_linear_regression_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-</div>
-<section id="plot-prediction-error" class="level4">
-<h4 class="anchored" data-anchor-id="plot-prediction-error">plot prediction error</h4>
-<div class="cell">
-<div class="cell-output cell-output-stdout">
-<pre><code># A tibble: 6 × 5
-  Estimate Est.Error  Q2.5 Q97.5 weight_c
-     &lt;dbl&gt;     &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;    &lt;dbl&gt;
-1     138.      5.07  128.  148.      -18
-2     139.      5.24  129.  150.      -17
-3     140.      5.09  130.  150.      -16
-4     141.      5.15  131.  151.      -15
-5     142.      5.11  132.  152.      -14
-6     143.      5.22  133.  153.      -13</code></pre>
-</div>
-</div>
-</section>
-</section>
-<section id="model-and-plot-quadratic-kung-height" class="level2">
-<h2 class="anchored" data-anchor-id="model-and-plot-quadratic-kung-height">model and plot Quadratic !Kung height</h2>
-<div class="cell">
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="ch4_linear_regression_files/figure-html/model and plot quadratic kung height-1.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-</div>
-<section id="polynomial-cubic-model-kung-height" class="level3">
-<h3 class="anchored" data-anchor-id="polynomial-cubic-model-kung-height">polynomial (Cubic) model !Kung height</h3>
-</section>
-<section id="plot-polynomial-cubic-kung-height" class="level3">
-<h3 class="anchored" data-anchor-id="plot-polynomial-cubic-kung-height">plot Polynomial (Cubic) !Kung height</h3>
-<div class="cell">
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="ch4_linear_regression_files/figure-html/plot height cubic polynomial-1.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-</div>
-</section>
-</section>
-<section id="splines" class="level2">
-<h2 class="anchored" data-anchor-id="splines">Splines!</h2>
-<section id="eda-cherry-blossom-data" class="level3">
-<h3 class="anchored" data-anchor-id="eda-cherry-blossom-data">EDA cherry blossom data</h3>
-<div class="cell">
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="ch4_linear_regression_files/figure-html/EDA cherry blossoms-1.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-</div>
-</section>
-<section id="spline-model-cherry-blossom" class="level3">
-<h3 class="anchored" data-anchor-id="spline-model-cherry-blossom">Spline Model Cherry Blossom</h3>
-<div class="cell">
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="ch4_linear_regression_files/figure-html/Model Creation cherry-1.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-</div>
-</section>
-<section id="plots-cherry-blossom" class="level3">
-<h3 class="anchored" data-anchor-id="plots-cherry-blossom">Plots Cherry Blossom</h3>
-<div class="cell">
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="ch4_linear_regression_files/figure-html/Visuals cherry-1.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="ch4_linear_regression_files/figure-html/Visuals cherry-2.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-</div>
-</section>
-</section>
-<section id="hard-questions" class="level1">
-<h1>Hard Questions</h1>
-<section id="h1" class="level3">
-<h3 class="anchored" data-anchor-id="h1">4H1</h3>
-<p>The weights listed below were recorded in the !Kung census,but heights were not recorded for these individuals. Provide predicted heights and 89% intervals for each of these individuals. That is, fill in the table below, using model-based predictions.</p>
-<div class="cell">
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="ch4_linear_regression_files/figure-html/unnamed-chunk-9-1.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-</div>
+<p>Conditioning is one of the most important principles of statistical inference. Data, like the bomber damage, are conditional on how they get into our sample. Posterior distributions are conditional on the data. All model-based inference is conditional on the model. Every inference is conditional on something, whether we notice it or not.</p>
+<p>Simple linear models frequently fail to provide enough conditioning, however. Every model so far in this book has assumed that each predictor has an independent association with the mean of the outcome. What if we want to allow the association to be conditional? For example, in the primate milk data from the previous chapters, suppose the relationship between milk energy and brain size varies by taxonomic group (ape, monkey, prosimian). This is the same as suggesting that the influence of brain size on milk energy is conditional on taxonomic group. The linear models of previous chapters cannot address this question.</p>
+<p>To model deeper conditionality—where the importance of one predictor depends upon another predictor—we need interaction (also known as moderation). Interaction is a kind of conditioning, a way of allowing parameters (really their posterior distributions) to be conditional on further aspects of the data.</p>
+<p>More generally, interactions are central to most statistical models beyond the cozy world of Gaussian outcomes and linear models of the mean. In generalized linear models (GLMs), even when one does not explicitly define variables as interacting, they will always interact to some degree. Multilevel models induce similar effects. Common sorts of multilevel models are essentially massive interaction models, in which estimates (intercepts and slopes) are conditional on clusters (person, genus, village, city, galaxy) in the data. Multilevel interaction effects are complex. They’re not just allowing the impact of a predictor variable to change depending upon some other variable, but they are also estimat- ing aspects of the distribution of those changes. This may sound like genius, or madness, or both. Regardless, you can’t have the power of multilevel modeling without it.</p>
 
 
-</section>
-</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
