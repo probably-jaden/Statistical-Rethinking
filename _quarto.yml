@@ -13,8 +13,9 @@ website:
         text: Causal Confounds
       - href: ch7ModelComparison.qmd
         text: Model Metrics
-      - htrg: ch8_conditional.qmd
+      - href: ch8_conditional.qmd
         text: Interactions
+        
 format:
   html:
     theme: cosmo
