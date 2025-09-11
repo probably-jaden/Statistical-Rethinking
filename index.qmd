@@ -55,7 +55,11 @@ Visualizations are what got me interested in statistics in the first place! I lo
 
 **(4)️ [Model Metrics](ch7ModelComparison.qmd) 🎯 **
 
-- Occam's razor 🪒, 
+- Occam's razor, AIC , LOO, Oh my!
+
+**(5) [Interactions](ch8_conditional.qmd) 🎨**
+
+- Covariate effects conditional on other covariate effects!
 
 ## References
 
