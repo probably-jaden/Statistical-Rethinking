@@ -67,6 +67,35 @@ ul.task-list li input[type="checkbox"] {
   }
 }</script>
 
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
 
 </head>
 
@@ -118,8 +147,17 @@ ul.task-list li input[type="checkbox"] {
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
 <!-- margin-sidebar -->
-    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
-        
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#continuous-with-discrete-interactions" id="toc-continuous-with-discrete-interactions" class="nav-link active" data-scroll-target="#continuous-with-discrete-interactions">Continuous with Discrete Interactions</a>
+  <ul class="collapse">
+  <li><a href="#ruggedness-vs-gdp-in-africa" id="toc-ruggedness-vs-gdp-in-africa" class="nav-link" data-scroll-target="#ruggedness-vs-gdp-in-africa">Ruggedness vs GDP in Africa 🌍</a></li>
+  </ul></li>
+  </ul>
+</nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
@@ -154,8 +192,87 @@ ul.task-list li input[type="checkbox"] {
 <p>Simple linear models frequently fail to provide enough conditioning, however. Every model so far in this book has assumed that each predictor has an independent association with the mean of the outcome. What if we want to allow the association to be conditional? For example, in the primate milk data from the previous chapters, suppose the relationship between milk energy and brain size varies by taxonomic group (ape, monkey, prosimian). This is the same as suggesting that the influence of brain size on milk energy is conditional on taxonomic group. The linear models of previous chapters cannot address this question.</p>
 <p>To model deeper conditionality—where the importance of one predictor depends upon another predictor—we need interaction (also known as moderation). Interaction is a kind of conditioning, a way of allowing parameters (really their posterior distributions) to be conditional on further aspects of the data.</p>
 <p>More generally, interactions are central to most statistical models beyond the cozy world of Gaussian outcomes and linear models of the mean. In generalized linear models (GLMs), even when one does not explicitly define variables as interacting, they will always interact to some degree. Multilevel models induce similar effects. Common sorts of multilevel models are essentially massive interaction models, in which estimates (intercepts and slopes) are conditional on clusters (person, genus, village, city, galaxy) in the data. Multilevel interaction effects are complex. They’re not just allowing the impact of a predictor variable to change depending upon some other variable, but they are also estimat- ing aspects of the distribution of those changes. This may sound like genius, or madness, or both. Regardless, you can’t have the power of multilevel modeling without it.</p>
+<section id="continuous-with-discrete-interactions" class="level2">
+<h2 class="anchored" data-anchor-id="continuous-with-discrete-interactions">Continuous with Discrete Interactions</h2>
+<section id="ruggedness-vs-gdp-in-africa" class="level3">
+<h3 class="anchored" data-anchor-id="ruggedness-vs-gdp-in-africa">Ruggedness vs GDP in Africa 🌍</h3>
+<p>In this vignette we look at the Log gdp per capita of different countries. The more rugged the terrain the lower the gdp is on average, which fits a nice causal story of the harder it is to cross the land the less trade and wealth is created. This story is reversed though when we look at countries in Africa, as seen below in the figure.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-2-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>What’s to make of the story? Maybe historical slavery has a lasting effect on the economies of african countries, the flatter more accessible regions of africa had slaving?</p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid figure-img" width="384"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>In the graph above we formalize this idea by saying that ruggedness <span class="math inline">\(R\)</span> influences the current GDP <span class="math inline">\(G\)</span>. Both <span class="math inline">\(R\)</span> &amp; <span class="math inline">\(G\)</span> are influenced by some set of unknown confounders <span class="math inline">\(U\)</span> like proximity to coastline, which we’ll ignore for the moment. Finally <span class="math inline">\(C\)</span> the continent effects <span class="math inline">\(G\)</span> as well, crucially <span class="math inline">\(R\)</span> and <span class="math inline">\(C\)</span> could be independent or interact on their influence on <span class="math inline">\(G\)</span>. The DAG does not display an interaction, instead we declare outside of the graph like this: <span class="math inline">\(G = f(R, C)\)</span>.</p>
+<p>How do we estimate that function <span class="math inline">\(f\)</span>, we could split up the data and make separate models 1 for africa and 1 for all the other continents countries. But this lead to a poor estimate of other parameters like <span class="math inline">\(\sigma\)</span>. Additionally if we wanted to compare models with an information criteria we’d need to use the same data, so splitting the data also hurts that process.</p>
+<p>Our first model is:</p>
+<p><span class="math display">\[ log(y_i) \ sim Normal(\mu_i, \sigma)\]</span></p>
+<p><span class="math display">\[ \mu_i = \alpha + \beta(\text{rugged}_i - \overline{rugged})\]</span></p>
+<div class="tabset-margin-container"></div><div class="panel-tabset">
+<ul class="nav nav-tabs" role="tablist"><li class="nav-item" role="presentation"><a class="nav-link active" id="tabset-1-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-1" role="tab" aria-controls="tabset-1-1" aria-selected="true">📈 μ heatmap</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-1-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-2" role="tab" aria-controls="tabset-1-2" aria-selected="false">🎛 Parameters</a></li></ul>
+<div class="tab-content">
+<div id="tabset-1-1" class="tab-pane active" role="tabpanel" aria-labelledby="tabset-1-1-tab">
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</div>
+<div id="tabset-1-2" class="tab-pane" role="tabpanel" aria-labelledby="tabset-1-2-tab">
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid figure-img" width="960"></p>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<section id="indicator-variable-solution" class="level4">
+<h4 class="anchored" data-anchor-id="indicator-variable-solution">Indicator Variable Solution</h4>
+<p>The first thing to realize is that just including an indicator variable for African nations, won’t reveal the reversed slope.</p>
+<p>To build a model that alls nations inside nd outside Africa to have different intercepts, we need to modify the model for <span class="math inline">\(\mu_i\)</span> so that the mean is conditional on continent. The conventional way to do this would be to just add another term to the linear model:</p>
+<p><span class="math display">\[ \mu_i = \alpha + \beta_!(\text{rugged}_i - \overline{rugged}) - \beta_2  \mathbf{I} (\text{Africa}_i)\]</span></p>
+<p>Where <span class="math inline">\(\text{Africa}_i\)</span> is a 0/1 indicator variable for Africa or not Africa. But this model assumes that african countries have more uncertainty inherently built into their <span class="math inline">\(mu\)</span> estimate, which makes no sense.</p>
+<p>Our simple solution is to create separate intercepts for the different categories, like so:</p>
+<p><span class="math display">\[ \mu_i = \alpha_\text{Africa [i]} + \beta_!(\text{rugged}_i - \overline{rugged})\]</span> Where <span class="math inline">\(\text{Africa [i]}\)</span> is an index variable which takes the value 1 for African nations and 2 for all other nations.</p>
+<section id="parameters-1" class="level5">
+<h5 class="anchored" data-anchor-id="parameters-1">🎛 Parameters</h5>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid figure-img" width="960"></p>
+</figure>
+</div>
+</div>
+</div>
 
 
+</section>
+</section>
+</section>
+</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
