@@ -23,6 +23,7 @@ library(dagitty)
 library(ggdag)
 library(ggrepel)
 library(ggthemes)
+library(rcartocolor)
 
 library(rethinking)
 data(rugged)
@@ -228,13 +229,13 @@ The first thing to realize is that just including an indicator variable for Afri
 
 To build a model that alls nations inside nd outside Africa to have different intercepts, we need to modify the model for $\mu_i$ so that the mean is conditional on continent. The conventional way to do this would be to just add another term to the linear model:
 
-$$ \mu_i = \alpha + \beta_!(\text{rugged}_i - \overline{rugged}) - \beta_2  \mathbf{I} (\text{Africa}_i)$$
+$$ \mu_i = \alpha + \beta_1(\text{rugged}_i - \overline{rugged}) - \beta_2  \mathbf{I} (\text{Africa}_i)$$
 
 Where $\text{Africa}_i$ is a 0/1 indicator variable for Africa or not Africa. But this model assumes that african countries have more uncertainty inherently built into their $mu$ estimate, which makes no sense.
 
 Our simple solution is to create separate intercepts for the different categories, like so:
 
-$$ \mu_i = \alpha_\text{Africa [i]} + \beta_!(\text{rugged}_i - \overline{rugged})$$
+$$ \mu_i = \alpha_\text{Africa [i]} + \beta_1(\text{rugged}_i - \overline{rugged})$$
 Where $\text{Africa [i]}$ is an index variable which takes the value 1 for African nations and 2 for all other nations.
 
 ```{r}
@@ -288,3 +289,41 @@ as_tibble(b8.1) %>%
         panel.grid = element_blank())
 
 ```
+
+
+```{r}
+#| fig-width: 10
+#| fig-height: 2
+
+b8.0 <- add_criterion(b8.0, criterion = "waic")
+b8.1 <- add_criterion(b8.1, criterion = "waic") 
+b8.1$criteria$waic
+
+w <- loo_compare(b8.0, b8.1, criterion = "waic")
+
+w[, 7:8] %>% 
+  data.frame() %>% 
+  rownames_to_column("model_name") %>% 
+  mutate(model_name = fct_reorder(model_name, waic, .desc = T)) %>% 
+  
+  ggplot(aes(x = waic, y = model_name, 
+             xmin = waic - se_waic, 
+             xmax = waic + se_waic)) +
+  geom_pointrange(color = carto_pal(7, "BurgYl")[7], 
+                  fill = carto_pal(7, "BurgYl")[5], shape = 21) +
+  labs(title = "My custom WAIC plot",
+       x = NULL, y = NULL) +
+  theme(axis.ticks.y = element_blank())+
+  theme_minimal()
+
+b8.0 <- add_criterion(b8.0, criterion = "loo")
+b8.1 <- add_criterion(b8.1, criterion = "loo")
+
+loo_compare(b8.0, b8.1, criterion = "loo") %>% 
+  print(simplify = F)
+```
+
+$$\eta_n = \sum_{i = 1}^K b_i x_{ni}$$
+
+$$\eta_n = b_1 \exp(b_2 x_n)$$
+$$cum_{AY, dev} \sim N(\mu_{AY, dev}, \sigma) \mu_{AY, dev} = ult_{AY} \left(1 - \exp\left(- \left( \frac{dev}{\theta} \right)^\omega \right) \right)$$
