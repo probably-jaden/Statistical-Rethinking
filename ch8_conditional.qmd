@@ -22,10 +22,13 @@ library(GGally)
 library(dagitty)
 library(ggdag)
 library(ggrepel)
+library(ggthemes)
 
 library(rethinking)
+data(rugged)
+
 detach(package:rethinking, unload = T)
-data(milk)
+
 at <- c(-3, -2, -1, 0, 1, 2, 3)
 
 
@@ -44,3 +47,244 @@ Simple linear models frequently fail to provide enough conditioning, however. Ev
 To model deeper conditionality—where the importance of one predictor depends upon another predictor—we need interaction (also known as moderation). Interaction is a kind of conditioning, a way of allowing parameters (really their posterior distributions) to be conditional on further aspects of the data.
 
 More generally, interactions are central to most statistical models beyond the cozy world of Gaussian outcomes and linear models of the mean. In generalized linear models (GLMs), even when one does not explicitly define variables as interacting, they will always interact to some degree. Multilevel models induce similar effects. Common sorts of multilevel models are essentially massive interaction models, in which estimates (intercepts and slopes) are conditional on clusters (person, genus, village, city, galaxy) in the data. Multilevel interaction effects are complex. They’re not just allowing the impact of a predictor variable to change depending upon some other variable, but they are also estimat- ing aspects of the distribution of those changes. This may sound like genius, or madness, or both. Regardless, you can’t have the power of multilevel modeling without it.
+
+
+## Continuous with Discrete Interactions
+
+
+### Ruggedness vs GDP in Africa 🌍
+
+In this vignette we look at the Log gdp per capita of different countries. The more rugged the terrain the lower the gdp is on average, which fits a nice causal story of the harder it is to cross the land the less trade and wealth is created. This story is reversed though when we look at countries in Africa, as seen below in the figure.
+
+```{r}
+rugged_clean <-
+  rugged %>%
+  mutate(log_gdp = log(rgdppc_2000)) %>% 
+  filter(complete.cases(rgdppc_2000)) %>%  # countries with GDP data
+  # re-scale variables
+  mutate(log_gdp_std = log_gdp / mean(log_gdp), 
+         rugged_std  = rugged / max(rugged),
+         rugged_std_centered = rugged_std - mean(rugged_std))
+```
+
+
+```{r}
+p1 <- rugged_clean %>% 
+  filter(cont_africa == 1) %>% 
+  ggplot(aes(x = rugged_std, y = log_gdp_std)) +
+  geom_smooth(method = "lm", formula = y ~ x,
+              fill = palette_pander(n = 2)[1],
+              color = palette_pander(n = 2)[1]) +
+  geom_point(color = palette_pander(n = 2)[1]) +
+  geom_text_repel(data = . %>% 
+                    filter(country %in% c("Lesotho", "Seychelles")),  
+                  aes(label = country), 
+                  size = 3, family = "Times", seed = 8) +
+  labs(subtitle = "African nations",
+       x = "ruggedness (standardized)",
+       y = "log GDP (as proportion of mean)")+
+  theme_minimal()
+
+p2 <-
+  rugged_clean %>% 
+  filter(cont_africa == 0) %>% 
+  ggplot(aes(x = rugged_std, y = log_gdp_std)) +
+  geom_smooth(method = "lm", formula = y ~ x,
+              fill = palette_pander(n = 2)[2],
+              color = palette_pander(n = 2)[2]) +
+  geom_point(color = palette_pander(n = 2)[2]) +
+  geom_text_repel(data = . %>% 
+                    filter(country %in% c("Switzerland", "Tajikistan")),  
+                  aes(label = country), 
+                  size = 3, family = "Times", seed = 8) +
+  xlim(0, 1) +
+  labs(subtitle = "Non-African nations",
+       x = "ruggedness (standardized)",
+       y = "log GDP (as proportion of mean)")+
+  theme_minimal()
+
+# combine
+p1 + p2 + plot_annotation(title = "Figure 8.2. Separate linear regressions inside and outside of Africa")
+```
+
+What's to make of the story? Maybe historical slavery has a lasting effect on the economies of african countries, the flatter more accessible regions of africa had slaving?
+
+```{r}
+#| fig-width: 4
+#| fig-height: 3
+dag_coords <- tibble(name = c("R", "G", "U", "C"),
+                     x = c(1, 2, 2, 2.5),
+                     y = c(2, 2, 1, 2))
+
+m6 <- dagify("G" ~ "R" + "U" + "C",
+             "R" ~ "U",
+             coords = dag_coords) %>% 
+  ggplot(aes(x = x, y = y, xend = xend, yend = yend))+
+  geom_dag_point(color = "firebrick", alpha = 1/4, size = 10)+
+  geom_dag_point(data = . %>% filter(name == "U"), 
+                 color = "firebrick4", fill = NA, size = 10, shape = 21, 
+                 stroke = 2, linetype = "dashed")+
+  geom_dag_text( color = "firebrick", parse = TRUE) +
+  geom_dag_edges(edge_color = "firebrick") +
+  scale_x_continuous(NULL, breaks = NULL, expand = c(0.1, 0.1)) +
+  scale_y_continuous(NULL, breaks = NULL, expand = c(0.2, 0.2)) +
+  theme_bw() +
+  theme(panel.grid = element_blank())+
+  labs(caption = "G = GDP, R = Ruggedness, C = Continent, U = Unobserved Effect")
+
+m6
+```
+
+In the graph above we formalize this idea by saying that ruggedness $R$ influences the current GDP $G$. Both $R$ & $G$ are influenced by some set of unknown confounders $U$ like proximity to coastline, which we'll ignore for the moment. Finally $C$ the continent effects $G$ as well, crucially $R$ and $C$ could be independent or interact on their influence on $G$. The DAG does not display an interaction, instead we declare outside of the graph like this: $G = f(R, C)$.
+
+How do we estimate that function $f$, we could split up the data and make separate models 1 for africa and 1 for all the other continents countries. But this lead to a poor estimate of other parameters like $\sigma$. Additionally if we wanted to compare models with an information criteria we'd need to use the same data, so splitting the data also hurts that process.
+
+Our first model is:
+
+$$ log(y_i) \ sim Normal(\mu_i, \sigma)$$
+
+$$ \mu_i = \alpha + \beta(\text{rugged}_i - \overline{rugged})$$
+```{r}
+b8.0 <- brm(data = rugged_clean,
+            family = gaussian(),
+            log_gdp_std ~ 1 + rugged_std_centered,
+            prior = c(
+              prior(normal(1, 0.1), class = Intercept),
+              prior(normal(0, 0.3), class = b),
+              prior(exponential(1), class = sigma)
+            ),
+            iter = 2000, warmup = 500, cores = 4, seed = 5,
+            backend = "cmdstanr", silent = 2, file = "fits/b08.0.1")
+```
+
+::: panel-tabset
+
+##### 📈 μ heatmap
+
+```{r}
+
+min_rugged = min(rugged_clean$rugged_std_centered)
+max_rugged = max(rugged_clean$rugged_std_centered)
+
+simModel <- as_tibble(b8.0) %>% 
+  mutate(simRuggedness = seq(from = min_rugged, to = max_rugged, length.out = n()),
+         simGDPEst= Intercept + (b_rugged_std_centered * simRuggedness),
+         simGDP = rnorm(n(), simGDPEst, sd = sigma))
+         
+# ymin <- min(c(simModel$simGDP, simModel$simGDPEst, rugged_clean$log_gdp_std))
+# ymax <- max(c(simModel$simGDP, simModel$simGDPEst, rugged_clean$log_gdp_std))
+
+at <- seq(from = min_rugged, to = max_rugged, length.out = 5)
+
+modelEst_plot <- ggplot() +
+  stat_density_2d(data = simModel, 
+                  aes(x = simRuggedness, y = simGDPEst, fill = after_stat(ndensity)),
+                  geom = "raster", contour = FALSE) +
+  scale_fill_viridis_c(option = "magma") +
+  geom_point(data = rugged_clean,
+             aes(x = rugged_std_centered, y = log_gdp_std), 
+             shape = 21, color = "white", fill = "black", lwd = 3, alpha = .8)+
+  labs(y = "Log GDP (1.0 = average country)",
+       title = "Log GDP ~ Ruggedness", subtitle = "Mu estimate")+
+  theme_minimal()+
+  scale_x_continuous("Ruggedness (0 = minimum ruggedness, 100 = maximum ruggedness)",
+                     breaks = at,
+                     labels = round(at + mean(rugged_clean$rugged_std), 1) * 100) +
+  guides(fill = "none")
+
+modelEst_plot
+```
+#####  🎛 Parameters
+
+```{r}
+#| fig-width: 10
+#| fig-height: 2
+
+as_tibble(b8.0) %>% 
+  rename("Ruggedness" = b_rugged_std_centered) %>% 
+  dplyr::select(c(`Ruggedness`, `Intercept`)) %>% 
+  pivot_longer(cols = everything(),
+               names_to = "Covariate",
+               values_to = "Effect") %>% 
+  ggplot(aes(x = `Effect`, y = reorder(Covariate, `Effect`))) +
+  stat_halfeye(point_interval = median_qi, .width = .95,
+               fill = "firebrick4") +
+  labs(x = "Effect on Log GDP per capita",
+       y = NULL) +
+  theme_bw() +
+  theme(axis.text.y = element_text(hjust = 0),
+        axis.ticks.y = element_blank(),
+        panel.grid = element_blank())
+
+```
+
+
+
+:::
+
+#### Indicator Variable Solution
+
+The first thing to realize is that just including an indicator variable for African nations, won't reveal the reversed slope. 
+
+To build a model that alls nations inside nd outside Africa to have different intercepts, we need to modify the model for $\mu_i$ so that the mean is conditional on continent. The conventional way to do this would be to just add another term to the linear model:
+
+$$ \mu_i = \alpha + \beta_!(\text{rugged}_i - \overline{rugged}) - \beta_2  \mathbf{I} (\text{Africa}_i)$$
+
+Where $\text{Africa}_i$ is a 0/1 indicator variable for Africa or not Africa. But this model assumes that african countries have more uncertainty inherently built into their $mu$ estimate, which makes no sense.
+
+Our simple solution is to create separate intercepts for the different categories, like so:
+
+$$ \mu_i = \alpha_\text{Africa [i]} + \beta_!(\text{rugged}_i - \overline{rugged})$$
+Where $\text{Africa [i]}$ is an index variable which takes the value 1 for African nations and 2 for all other nations.
+
+```{r}
+rugged_clean <- rugged_clean %>% 
+  mutate(african_status = ifelse(cont_africa == 1, "african", "not african"))
+
+b8.1 <- brm(data = rugged_clean,
+            family = gaussian(),
+            log_gdp_std ~ 0 + african_status + rugged_std_centered,
+            prior = c(
+              prior(normal(0.9, 0.1), class = b, coef = "african_statusafrican"),
+              prior(normal(1.1, 0.1), class = b, coef = "african_statusnotafrican"),
+              prior(normal(0, 0.3), class = b, coef = "rugged_std_centered"),
+              prior(exponential(1), class = sigma)
+            ),
+            iter = 2000, warmup = 500, cores = 4, seed = 5,
+            backend = "cmdstanr", silent = 2, file = "fits/b08.1.0")
+
+# get_prior(data = rugged_clean,
+#             family = gaussian(),
+#             log_gdp_std ~ 0 + african_status + rugged_std_centered)
+```
+
+
+
+
+
+
+#####  🎛 Parameters
+
+```{r}
+#| fig-width: 10
+#| fig-height: 2
+
+as_tibble(b8.1) %>% 
+  rename("Ruggedness" = b_rugged_std_centered,
+         "African" = b_african_statusafrican,
+         "Non-African" = b_african_statusnotafrican) %>% 
+  dplyr::select(c(`Ruggedness`, `African`, `Non-African`)) %>% 
+  pivot_longer(cols = everything(),
+               names_to = "Covariate",
+               values_to = "Effect") %>% 
+  ggplot(aes(x = `Effect`, y = reorder(Covariate, `Effect`))) +
+  stat_halfeye(point_interval = median_qi, .width = .95,
+               fill = "firebrick4") +
+  labs(x = "Effect on Log GDP per capita",
+       y = NULL) +
+  theme_bw() +
+  theme(axis.text.y = element_text(hjust = 0),
+        axis.ticks.y = element_blank(),
+        panel.grid = element_blank())
+
+```
