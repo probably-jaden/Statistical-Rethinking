@@ -197,21 +197,21 @@ window.Quarto = {
 <section id="ruggedness-vs-gdp-in-africa" class="level3">
 <h3 class="anchored" data-anchor-id="ruggedness-vs-gdp-in-africa">Ruggedness vs GDP in Africa 🌍</h3>
 <p>In this vignette we look at the Log gdp per capita of different countries. The more rugged the terrain the lower the gdp is on average, which fits a nice causal story of the harder it is to cross the land the less trade and wealth is created. This story is reversed though when we look at countries in Africa, as seen below in the figure.</p>
-<div class="cell">
+<div class="cell" data-layout-align="center">
 <div class="cell-output-display">
-<div>
+<div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-2-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-2-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="672"></p>
 </figure>
 </div>
 </div>
 </div>
 <p>What’s to make of the story? Maybe historical slavery has a lasting effect on the economies of african countries, the flatter more accessible regions of africa had slaving?</p>
-<div class="cell">
+<div class="cell" data-layout-align="center">
 <div class="cell-output-display">
-<div>
+<div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid figure-img" width="384"></p>
+<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="384"></p>
 </figure>
 </div>
 </div>
@@ -225,22 +225,22 @@ window.Quarto = {
 <ul class="nav nav-tabs" role="tablist"><li class="nav-item" role="presentation"><a class="nav-link active" id="tabset-1-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-1" role="tab" aria-controls="tabset-1-1" aria-selected="true">📈 μ heatmap</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-1-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-2" role="tab" aria-controls="tabset-1-2" aria-selected="false">🎛 Parameters</a></li></ul>
 <div class="tab-content">
 <div id="tabset-1-1" class="tab-pane active" role="tabpanel" aria-labelledby="tabset-1-1-tab">
-<div class="cell">
+<div class="cell" data-layout-align="center">
 <div class="cell-output-display">
-<div>
+<div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="672"></p>
 </figure>
 </div>
 </div>
 </div>
 </div>
 <div id="tabset-1-2" class="tab-pane" role="tabpanel" aria-labelledby="tabset-1-2-tab">
-<div class="cell">
+<div class="cell" data-layout-align="center">
 <div class="cell-output-display">
-<div>
+<div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid figure-img" width="960"></p>
+<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="960"></p>
 </figure>
 </div>
 </div>
@@ -252,24 +252,77 @@ window.Quarto = {
 <h4 class="anchored" data-anchor-id="indicator-variable-solution">Indicator Variable Solution</h4>
 <p>The first thing to realize is that just including an indicator variable for African nations, won’t reveal the reversed slope.</p>
 <p>To build a model that alls nations inside nd outside Africa to have different intercepts, we need to modify the model for <span class="math inline">\(\mu_i\)</span> so that the mean is conditional on continent. The conventional way to do this would be to just add another term to the linear model:</p>
-<p><span class="math display">\[ \mu_i = \alpha + \beta_!(\text{rugged}_i - \overline{rugged}) - \beta_2  \mathbf{I} (\text{Africa}_i)\]</span></p>
+<p><span class="math display">\[ \mu_i = \alpha + \beta_1(\text{rugged}_i - \overline{rugged}) - \beta_2  \mathbf{I} (\text{Africa}_i)\]</span></p>
 <p>Where <span class="math inline">\(\text{Africa}_i\)</span> is a 0/1 indicator variable for Africa or not Africa. But this model assumes that african countries have more uncertainty inherently built into their <span class="math inline">\(mu\)</span> estimate, which makes no sense.</p>
 <p>Our simple solution is to create separate intercepts for the different categories, like so:</p>
-<p><span class="math display">\[ \mu_i = \alpha_\text{Africa [i]} + \beta_!(\text{rugged}_i - \overline{rugged})\]</span> Where <span class="math inline">\(\text{Africa [i]}\)</span> is an index variable which takes the value 1 for African nations and 2 for all other nations.</p>
-<section id="parameters-1" class="level5">
-<h5 class="anchored" data-anchor-id="parameters-1">🎛 Parameters</h5>
-<div class="cell">
+<p><span class="math display">\[ \mu_i = \alpha_\text{Africa [i]} + \beta_1(\text{rugged}_i - \overline{rugged})\]</span> Where <span class="math inline">\(\text{Africa [i]}\)</span> is an index variable which takes the value 1 for African nations and 2 for all other nations.</p>
+<div class="tabset-margin-container"></div><div class="panel-tabset">
+<ul class="nav nav-tabs" role="tablist"><li class="nav-item" role="presentation"><a class="nav-link active" id="tabset-2-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-2-1" role="tab" aria-controls="tabset-2-1" aria-selected="true">📈 μ heatmap</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-2-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-2-2" role="tab" aria-controls="tabset-2-2" aria-selected="false">📈 Alt μ heatmap</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-2-3-tab" data-bs-toggle="tab" data-bs-target="#tabset-2-3" role="tab" aria-controls="tabset-2-3" aria-selected="false">🎛 Parameters</a></li></ul>
+<div class="tab-content">
+<div id="tabset-2-1" class="tab-pane active" role="tabpanel" aria-labelledby="tabset-2-1-tab">
+<div class="cell" data-layout-align="center">
 <div class="cell-output-display">
-<div>
+<div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid figure-img" width="960"></p>
+<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="672"></p>
 </figure>
 </div>
 </div>
 </div>
+</div>
+<div id="tabset-2-2" class="tab-pane" role="tabpanel" aria-labelledby="tabset-2-2-tab">
+<div class="cell" data-layout-align="center">
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-9-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</div>
+<div id="tabset-2-3" class="tab-pane" role="tabpanel" aria-labelledby="tabset-2-3-tab">
+<div class="cell" data-layout-align="center">
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-10-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="960"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell" data-layout-align="center">
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Computed from 4000 by 170 log-likelihood matrix.
+
+          Estimate   SE
+elpd_waic    126.2  7.5
+p_waic         4.2  0.8
+waic        -252.3 15.0
+
+1 (0.6%) p_waic estimates greater than 0.4. We recommend trying loo instead. </code></pre>
+</div>
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-11-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="960"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>     elpd_diff se_diff elpd_loo se_elpd_loo p_loo  se_p_loo looic  se_looic
+b8.1    0.0       0.0   126.1      7.5         4.2    0.8   -252.2   15.0  
+b8.0  -31.7       7.5    94.4      6.5         2.6    0.3   -188.9   13.0  </code></pre>
+</div>
+</div>
+<p><span class="math display">\[\eta_n = \sum_{i = 1}^K b_i x_{ni}\]</span></p>
+<p><span class="math display">\[\eta_n = b_1 \exp(b_2 x_n)\]</span> <span class="math display">\[cum_{AY, dev} \sim N(\mu_{AY, dev}, \sigma) \mu_{AY, dev} = ult_{AY} \left(1 - \exp\left(- \left( \frac{dev}{\theta} \right)^\omega \right) \right)\]</span></p>
 
 
-</section>
+</div>
+</div>
+</div>
 </section>
 </section>
 </section>
