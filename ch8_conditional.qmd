@@ -251,17 +251,80 @@ b8.1 <- brm(data = rugged_clean,
               prior(normal(0, 0.3), class = b, coef = "rugged_std_centered"),
               prior(exponential(1), class = sigma)
             ),
-            iter = 2000, warmup = 500, cores = 4, seed = 5,
-            backend = "cmdstanr", silent = 2, file = "fits/b08.1.0")
+            iter = 2000, warmup = 1000, cores = 4, seed = 5,
+            backend = "cmdstanr", silent = 2, file = "fits/b08.1.1")
 
 # get_prior(data = rugged_clean,
 #             family = gaussian(),
 #             log_gdp_std ~ 0 + african_status + rugged_std_centered)
+
 ```
 
 
 
+::: panel-tabset
 
+##### 📈 μ heatmap
+
+```{r}
+simCov <- 
+  crossing(african_status = c("african", "not african"),
+           rugged_std = seq(from = -0.2, to = 1.2, length.out = 30)) %>% 
+  mutate(rugged_std_centered = rugged_std - mean(rugged_clean$rugged_std))
+
+fitted(b8.1, 
+       newdata = simCov,
+       summary = F) %>% 
+  data.frame() %>% 
+  pivot_longer(everything()) %>% 
+  bind_cols(expand_grid(draws = 1:4000, simCov)) %>% 
+  ggplot(aes(x = rugged_std_centered, y = value, fill = african_status, color = african_status))+
+  stat_lineribbon(.width = seq(from = .03, to = .99, by =.03),
+                  alpha = .1, size = 0) +
+  geom_point(data = rugged_clean, aes(x = rugged_std_centered, y = log_gdp_std,
+                                      fill = african_status, color = african_status))+
+  theme_minimal() + 
+  labs(y = "log GDP (as proportion of mean)") +
+  scale_x_continuous("Ruggedness (0 = minimum ruggedness, 100 = maximum ruggedness)",
+                   breaks = at,
+                   labels = round(at + mean(rugged_clean$rugged_std), 1) * 100,
+                   limits = c(floor(min(at) * 10) / 10, ceiling(max(at) * 10) / 10))
+
+```
+
+##### 📈 Alt μ heatmap
+
+```{r}
+fitted(b8.1, 
+       newdata = simCov,
+       summary = F) %>% 
+  data.frame() %>% 
+  pivot_longer(everything()) %>% 
+  bind_cols(expand_grid(draws = 1:4000, simCov)) %>% 
+  ggplot(aes(x = rugged_std_centered, y = value)) +
+  stat_density_2d(aes(fill = after_stat(ndensity)), 
+                  geom = "raster", contour = FALSE) +
+  scale_fill_viridis_c(option = "magma") +
+  geom_point(data = rugged_clean, 
+             aes(x = rugged_std_centered, y = log_gdp_std),
+             shape = 21, color = "white", fill = "black", size = 2, alpha = 0.8) +
+  facet_wrap(~ african_status, labeller = label_both) +
+  theme_void() +
+  theme(
+    panel.background = element_rect(fill = "black"),
+    plot.background = element_rect(fill = "black"),
+    strip.text = element_text(color = "white", size = 12),
+    axis.text = element_text(color = "white"),
+    axis.title.x = element_text(color = "white"),
+    axis.title.y = element_text(color = "white", angle = 90, vjust = 0.5),  # Rotated y-axis title
+    plot.title = element_text(color = "white")
+  ) +
+  labs(y = "log GDP (as proportion of mean)") +
+  scale_x_continuous("Ruggedness (0 = minimum ruggedness, 100 = maximum ruggedness)",
+                     breaks = at,
+                     labels = round(at + mean(rugged_clean$rugged_std), 1) * 100) +
+  guides(fill = "none")
+```
 
 
 #####  🎛 Parameters
