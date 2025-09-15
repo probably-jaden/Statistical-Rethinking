@@ -9,15 +9,13 @@ This is my documentation of the statistical techniques that I've worked on and p
 The textbook/course [Statistical Rethinking](https://oceanrep.geomar.de/id/eprint/55819/1/Statistical%20Rethinking%202nd%20Edition.pdf) is a fun way to unlearn STAT 101. McElreath is such a great educator that I'm making his book the back bone to this project: adopting his chapter structure, code, and fiery attitude towards what constitutes good science.
 
 ## Why Statistics?
-Statistics are powerful! They are a crucial element of scientific progress. They helped the Oakland A's win just as many games as the Yankee's with 1/3 of the budget. Your insurance, bank loan, retirement savings, car, smart phone, all took a lot of human ingenuity but that was not enough! They required lots of statistical work to be engineered, planned, and fine-tuned. 
+Statistics are powerful! They helped the Oakland A's win just as many games as the Yankee's with 1/3 of the budget.  Your insurance, bank loan, retirement savings, car, smart phone, all took a lot of human ingenuity but that was not enough! They required lots of statistical work to be engineered, planned, and fine-tuned. They are a crucial element of scientific progress. The vast majority of academic papers from sociology to physics rely on similar statistical tools to validate their claims.
 
 Some common objections to using statistics:
 <details>
 <summary>**Surely machine learning create more accurate predictions than traditional statistical models?**</summary>
 
-Machine learning is far more powerful than all of the traditional statistical techniques, but it requires far more data and computation. But there worst feature is that most all deep learning techniques are black boxes. They don't tell you why they predict the things that they predict or what causes what (at least not yet). This is why science papers across all disciplines (including machine learning research) uses statistics to draw their conclusions.
-
-Traditional statistical techniques are weaker, but that weakness means they are more understandable to us. That better understanding will allow us to understand our most complicated systems like LLM's, because after all they operate on the same fundamental probability engine.
+Machine learning techniques are far more powerful than traditional statistics. But machine learning techniques have their downsides; they require lots of data, they require lots of computation, and worst of all they're black boxes. They don't tell you why they predict the things that they predict or what causes what (at least not yet). This is why science papers use traditional statistics to validate their claims.
 
 </details>
 
@@ -33,7 +31,7 @@ Yes, businesses need lots of automation, but they also need help making decision
 <summary>**Visualizations are more intuitive and persuasive to audiences. [Our World in Data](https://ourworldindata.org/) has changed more minds than dull economic statistics.**</summary>
 
 
-Visualizations are what got me interested in statistics in the first place! I love them and try to use them as often as I can. But they're severely constrained in what they can accomplish. You won't be able to easily show how mountain terrain, soil fertility, precipitation, and historical wealth all help predict countries GDP without showing your audience half a dozen maps. Statistical models do what we can't see in a way that we can still understand.
+I love visualizations and try to use them as often as I can. But they're severely constrained in what they can accomplish. You won't be able to easily show how mountain terrain, soil fertility, precipitation, and historical wealth all help predict countries GDP without showing your audience half a dozen maps. Statistical models allow us to easily see how exactly each of those factors are associated to GDP.
 
 </details>
 
@@ -55,7 +53,7 @@ Visualizations are what got me interested in statistics in the first place! I lo
 
 **(4)️ [Model Metrics](ch7ModelComparison.qmd) 🎯 **
 
-- Occam's razor, AIC , LOO, Oh my!
+- AIC, LOO, Occam's razor, Oh my!
 
 **(5) [Interactions](ch8_conditional.qmd) 🎨**
 
