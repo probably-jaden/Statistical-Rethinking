@@ -240,23 +240,24 @@ Where $\text{Africa [i]}$ is an index variable which takes the value 1 for Afric
 
 ```{r}
 rugged_clean <- rugged_clean %>% 
-  mutate(african_status = ifelse(cont_africa == 1, "african", "not african"))
+  mutate(cont = ifelse(cont_africa == 1, "African", "Not African"))
 
 b8.1 <- brm(data = rugged_clean,
             family = gaussian(),
-            log_gdp_std ~ 0 + african_status + rugged_std_centered,
+            log_gdp_std ~ 0 + cont + rugged_std_centered,
             prior = c(
-              prior(normal(0.9, 0.1), class = b, coef = "african_statusafrican"),
-              prior(normal(1.1, 0.1), class = b, coef = "african_statusnotafrican"),
+              prior(normal(0.9, 0.1), class = b, coef = "contAfrican"),
+              prior(normal(1.1, 0.1), class = b, coef = "contNotAfrican"),
               prior(normal(0, 0.3), class = b, coef = "rugged_std_centered"),
               prior(exponential(1), class = sigma)
             ),
             iter = 2000, warmup = 1000, cores = 4, seed = 5,
-            backend = "cmdstanr", silent = 2, file = "fits/b08.1.1")
+            backend = "cmdstanr", silent = 2, file = "fits/b08.1.2")
 
 # get_prior(data = rugged_clean,
 #             family = gaussian(),
-#             log_gdp_std ~ 0 + african_status + rugged_std_centered)
+#             log_gdp_std ~ 0 + cont + rugged_std_centered)
+
 
 ```
 
@@ -266,9 +267,13 @@ b8.1 <- brm(data = rugged_clean,
 
 ##### 📈 μ heatmap
 
+::: panel-tabset
+
+###### Plot 1
+
 ```{r}
 simCov <- 
-  crossing(african_status = c("african", "not african"),
+  crossing(cont = c("African", "Not African"),
            rugged_std = seq(from = -0.2, to = 1.2, length.out = 30)) %>% 
   mutate(rugged_std_centered = rugged_std - mean(rugged_clean$rugged_std))
 
@@ -278,21 +283,25 @@ fitted(b8.1,
   data.frame() %>% 
   pivot_longer(everything()) %>% 
   bind_cols(expand_grid(draws = 1:4000, simCov)) %>% 
-  ggplot(aes(x = rugged_std_centered, y = value, fill = african_status, color = african_status))+
+  ggplot(aes(x = rugged_std_centered, y = value, fill = cont, color = cont))+
   stat_lineribbon(.width = seq(from = .03, to = .99, by =.03),
                   alpha = .1, size = 0) +
   geom_point(data = rugged_clean, aes(x = rugged_std_centered, y = log_gdp_std,
-                                      fill = african_status, color = african_status))+
+                                      fill = cont, color = cont))+
   theme_minimal() + 
   labs(y = "log GDP (as proportion of mean)") +
   scale_x_continuous("Ruggedness (0 = minimum ruggedness, 100 = maximum ruggedness)",
                    breaks = at,
                    labels = round(at + mean(rugged_clean$rugged_std), 1) * 100,
-                   limits = c(floor(min(at) * 10) / 10, ceiling(max(at) * 10) / 10))
+                   limits = c(floor(min(at) * 10) / 10, ceiling(max(at) * 10) / 10))+
+  theme(legend.background = element_blank(),
+      legend.direction = "horizontal",
+      legend.position = c(.67, .93),
+      legend.title = element_blank())
 
 ```
 
-##### 📈 Alt μ heatmap
+###### plot 2
 
 ```{r}
 fitted(b8.1, 
@@ -308,7 +317,184 @@ fitted(b8.1,
   geom_point(data = rugged_clean, 
              aes(x = rugged_std_centered, y = log_gdp_std),
              shape = 21, color = "white", fill = "black", size = 2, alpha = 0.8) +
-  facet_wrap(~ african_status, labeller = label_both) +
+  facet_wrap(~ cont, labeller = label_both) +
+  theme_void() +
+  theme(
+    panel.background = element_rect(fill = "black"),
+    plot.background = element_rect(fill = "black"),
+    strip.text = element_text(color = "white", size = 12),
+    axis.text = element_text(color = "white"),
+    axis.title.x = element_text(color = "white"),
+    axis.title.y = element_text(color = "white", angle = 90, vjust = 0.5),  # Rotated y-axis title
+    plot.title = element_text(color = "white")
+  ) +
+  labs(y = "log GDP (as proportion of mean)") +
+  scale_x_continuous("Ruggedness (0 = minimum ruggedness, 100 = maximum ruggedness)",
+                     breaks = at,
+                     labels = round(at + mean(rugged_clean$rugged_std), 1) * 100) +
+  guides(fill = "none")
+```
+:::
+
+#####  🎛 Parameters
+
+```{r}
+#| fig-width: 10
+#| fig-height: 2
+
+as_tibble(b8.1) %>% 
+  rename("Ruggedness" = b_rugged_std_centered,
+         "African" = b_contAfrican,
+         "Non-African" = b_contNotAfrican) %>% 
+  dplyr::select(c(`Ruggedness`, `African`, `Non-African`)) %>% 
+  pivot_longer(cols = everything(),
+               names_to = "Covariate",
+               values_to = "Effect") %>% 
+  ggplot(aes(x = `Effect`, y = reorder(Covariate, `Effect`))) +
+  stat_halfeye(point_interval = median_qi, .width = .95,
+               fill = "firebrick4") +
+  labs(x = "Effect on Log GDP per capita",
+       y = NULL) +
+  theme_bw() +
+  theme(axis.text.y = element_text(hjust = 0),
+        axis.ticks.y = element_blank(),
+        panel.grid = element_blank())
+
+```
+
+:::
+
+Adding Africa as an index covariate didn't get that reversal of slopes that we saw in our first plot. But when we compare this model to not having the Africa index covariate with WAIC, its clearly superior. So the Africa variable is clearly picking up some important association in the data. African countries have a lower average Log GDP regardless of their ruggedness and that's what our African index covariate supports.
+
+
+
+```{r}
+#| fig-width: 10
+#| fig-height: 2
+
+b8.0 <- add_criterion(b8.0, criterion = "waic")
+b8.1 <- add_criterion(b8.1, criterion = "waic") 
+
+w <- loo_compare(b8.0, b8.1, criterion = "waic")
+
+w[, 7:8] %>% 
+  data.frame() %>% 
+  rownames_to_column("model_name") %>% 
+  mutate(model_name = fct_reorder(model_name, waic, .desc = T)) %>% 
+  
+  ggplot(aes(x = waic, y = model_name, 
+             xmin = waic - se_waic, 
+             xmax = waic + se_waic)) +
+  geom_pointrange(color = carto_pal(7, "BurgYl")[7], 
+                  fill = carto_pal(7, "BurgYl")[5], shape = 21) +
+  labs(title = "WAIC model comparison plot",
+       x = NULL, y = NULL) +
+  theme(axis.ticks.y = element_blank())+
+  theme_minimal()
+
+b8.0 <- add_criterion(b8.0, criterion = "loo")
+b8.1 <- add_criterion(b8.1, criterion = "loo")
+
+loo_compare(b8.0, b8.1, criterion = "loo") %>% 
+  print(simplify = F)
+```
+
+#### Adding an Interaction does work
+
+How can we we recover the difference in slope that we saw at the beginning of this section? We need a proper interaction effect. This just means we make the slope conditional on whether it's part of Africa or not. 
+
+Just above we modeled 
+
+$$ \mu_i = \alpha_\text{Africa [i]} + \beta_1(\text{rugged}_i - \overline{rugged})$$
+
+But now we're going to make an index for $\beta$ as well.
+
+$$ \mu_i = \alpha_\text{Africa [i]} + \beta_\text{Africa[i]}(\text{rugged}_i - \overline{rugged})$$
+
+```{r}
+b8.2 <- brm(data = rugged_clean,
+            family = gaussian(),
+            bf(log_gdp_std ~ 0 + a + b * rugged_std_centered,
+               a ~ 0 + cont,
+               b  ~ 0 + cont,
+               nl = TRUE),
+            prior = c(
+              prior(normal(1, 0.1), class = b, nlpar = a, coef = contAfrican),
+              prior(normal(1, 0.1), class = b, nlpar = a, coef = contNotAfrican),
+              prior(normal(0, 0.3), class = b, nlpar = b, coef = contAfrican),
+              prior(normal(0, 0.3), class = b, nlpar = b, coef = contNotAfrican),
+              prior(exponential(1), class = sigma)
+            ),
+            iter = 2000, warmup = 1000, cores = 4, seed = 5,
+            backend = "cmdstanr", silent = 2, file = "fits/b08.2.1")
+
+# get_prior(data = rugged_clean,
+#             family = gaussian(),
+#             bf(log_gdp_std ~ 0 + a + b * rugged_std_centered,
+#                a ~ 0 + cont,
+#                b  ~ 0 + cont,
+#                nl = TRUE))
+```
+
+::: panel-tabset
+
+##### 📈 μ heatmap
+
+::: panel-tabset
+
+###### Plot 1
+
+```{r}
+simCov <- 
+  crossing(cont = c("African", "Not African"),
+           rugged_std = seq(from = -0.2, to = 1.2, length.out = 30)) %>% 
+  mutate(rugged_std_centered = rugged_std - mean(rugged_clean$rugged_std))
+
+fitted(b8.2, 
+       newdata = simCov,
+       summary = F) %>% 
+  data.frame() %>% 
+  pivot_longer(everything()) %>% 
+  bind_cols(expand_grid(draws = 1:4000, simCov)) %>% 
+  ggplot(aes(x = rugged_std_centered, y = value, fill = cont, color = cont))+
+  stat_lineribbon(.width = seq(from = .03, to = .99, by =.03),
+                  alpha = .1, size = 0) +
+  geom_point(data = rugged_clean, aes(x = rugged_std_centered, y = log_gdp_std,
+                                      fill = cont, color = cont))+
+  theme_minimal() + 
+  labs(y = "log GDP (as proportion of mean)") +
+  scale_x_continuous("Ruggedness (0 = minimum ruggedness, 100 = maximum ruggedness)",
+                   breaks = at,
+                   labels = round(at + mean(rugged_clean$rugged_std), 1) * 100,
+                   limits = c(floor(min(at) * 10) / 10, ceiling(max(at) * 10) / 10))+
+  theme(legend.background = element_blank(),
+      legend.direction = "horizontal",
+      legend.position = c(.67, .93),
+      legend.title = element_blank())
+
+```
+
+
+
+
+
+###### plot 2
+
+```{r}
+fitted(b8.2, 
+       newdata = simCov,
+       summary = F) %>% 
+  data.frame() %>% 
+  pivot_longer(everything()) %>% 
+  bind_cols(expand_grid(draws = 1:4000, simCov)) %>% 
+  ggplot(aes(x = rugged_std_centered, y = value)) +
+  stat_density_2d(aes(fill = after_stat(ndensity)), 
+                  geom = "raster", contour = FALSE) +
+  scale_fill_viridis_c(option = "magma") +
+  geom_point(data = rugged_clean, 
+             aes(x = rugged_std_centered, y = log_gdp_std),
+             shape = 21, color = "white", fill = "black", size = 2, alpha = 0.8) +
+  facet_wrap(~ cont, labeller = label_both) +
   theme_void() +
   theme(
     panel.background = element_rect(fill = "black"),
@@ -326,18 +512,21 @@ fitted(b8.1,
   guides(fill = "none")
 ```
 
+:::
 
-#####  🎛 Parameters
+##### 🎛 Parameters
 
 ```{r}
 #| fig-width: 10
 #| fig-height: 2
 
-as_tibble(b8.1) %>% 
-  rename("Ruggedness" = b_rugged_std_centered,
-         "African" = b_african_statusafrican,
-         "Non-African" = b_african_statusnotafrican) %>% 
-  dplyr::select(c(`Ruggedness`, `African`, `Non-African`)) %>% 
+as_tibble(b8.2) %>% 
+  rename("Intercept African" = b_a_contAfrican,
+         "Intercept Non-African" = b_a_contNotAfrican,
+         "Ruggedness African" = b_b_contAfrican,
+         "Ruggedness Non-African" = b_b_contNotAfrican,
+         ) %>% 
+  dplyr::select(c(`Intercept African`, `Intercept Non-African`, `Ruggedness African`, `Ruggedness Non-African`)) %>% 
   pivot_longer(cols = everything(),
                names_to = "Covariate",
                values_to = "Effect") %>% 
@@ -353,16 +542,21 @@ as_tibble(b8.1) %>%
 
 ```
 
+:::
 
 ```{r}
 #| fig-width: 10
 #| fig-height: 2
 
-b8.0 <- add_criterion(b8.0, criterion = "waic")
-b8.1 <- add_criterion(b8.1, criterion = "waic") 
-b8.1$criteria$waic
+b8.2 <- add_criterion(b8.2, criterion = "loo")
+b8.2 <- add_criterion(b8.2, criterion = "waic")
 
-w <- loo_compare(b8.0, b8.1, criterion = "waic")
+loo_compare(b8.0, b8.1, b8.2, criterion = "loo") %>% 
+  print(simplify = F)
+
+
+
+w <- loo_compare(b8.0, b8.1, b8.2, criterion = "waic")
 
 w[, 7:8] %>% 
   data.frame() %>% 
@@ -374,19 +568,9 @@ w[, 7:8] %>%
              xmax = waic + se_waic)) +
   geom_pointrange(color = carto_pal(7, "BurgYl")[7], 
                   fill = carto_pal(7, "BurgYl")[5], shape = 21) +
-  labs(title = "My custom WAIC plot",
+  labs(title = "WAIC model comparison plot",
        x = NULL, y = NULL) +
   theme(axis.ticks.y = element_blank())+
   theme_minimal()
-
-b8.0 <- add_criterion(b8.0, criterion = "loo")
-b8.1 <- add_criterion(b8.1, criterion = "loo")
-
-loo_compare(b8.0, b8.1, criterion = "loo") %>% 
-  print(simplify = F)
 ```
 
-$$\eta_n = \sum_{i = 1}^K b_i x_{ni}$$
-
-$$\eta_n = b_1 \exp(b_2 x_n)$$
-$$cum_{AY, dev} \sim N(\mu_{AY, dev}, \sigma) \mu_{AY, dev} = ult_{AY} \left(1 - \exp\left(- \left( \frac{dev}{\theta} \right)^\omega \right) \right)$$
