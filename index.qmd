@@ -20,7 +20,7 @@ Machine learning techniques are far more powerful than traditional statistics. B
 </details>
 
 <details>
-<summary>**Businesses say they want data processing, but what they're really saying is they want system automation (e.g. invoices need to be categorized and sent to accounting)?**</summary>
+<summary>**Businesses say they want data processing, but what they're really saying is they want system automation (e.g. invoices need to be categorized and sent to accounting).**</summary>
 
 
 Yes, businesses need lots of automation, but they also need help making decisions. Who to hire, who to let go, what product to sell, at what price to sell, to name a few. These decisions are in a weird gray zone, they require some human judgement but would benefit from computer aid. Statistics are the best set of tools for many of these problems. They allow both humans and computers to add their judgement's to an analysis, getting a better result than either would on their own.

@@ -27,6 +27,7 @@ library(rcartocolor)
 
 library(rethinking)
 data(rugged)
+data(tulips)
 
 detach(package:rethinking, unload = T)
 
@@ -50,7 +51,7 @@ To model deeper conditionality—where the importance of one predictor depends u
 More generally, interactions are central to most statistical models beyond the cozy world of Gaussian outcomes and linear models of the mean. In generalized linear models (GLMs), even when one does not explicitly define variables as interacting, they will always interact to some degree. Multilevel models induce similar effects. Common sorts of multilevel models are essentially massive interaction models, in which estimates (intercepts and slopes) are conditional on clusters (person, genus, village, city, galaxy) in the data. Multilevel interaction effects are complex. They’re not just allowing the impact of a predictor variable to change depending upon some other variable, but they are also estimat- ing aspects of the distribution of those changes. This may sound like genius, or madness, or both. Regardless, you can’t have the power of multilevel modeling without it.
 
 
-## Continuous with Discrete Interactions
+##  Discrete ~Continuous Interactions
 
 
 ### Ruggedness vs GDP in Africa 🌍
@@ -574,3 +575,78 @@ w[, 7:8] %>%
   theme_minimal()
 ```
 
+Out interaction model performs best yet, it receives more than 95% of the model weight. Though the remaining weight percentage placed on our 2nd model, does mean there is some reason to think that our model is a bit overfit on its slopes.
+
+#####
+The interaction there has two equally valid phrasings.
+(1) How much does the association between ruggedness and log GDP depend upon whether the nation is in Africa?
+(2) How much does the association of Africa with log GDP depend upon ruggedness?
+
+While these two possibilities sound different to most humans, our statistical engine thinks they are identical.
+
+```{r}
+fitted(b8.2, 
+       newdata = simCov,
+       summary = F) %>%
+  data.frame() %>%
+  pivot_longer(everything()) %>% 
+  bind_cols(expand_grid(draws = 1:4000, simCov)) %>% 
+  select(-name) %>% 
+  pivot_wider(names_from = cont, values_from = value) %>% 
+  mutate(delta =   `African` - `Not African`) %>% 
+  ggplot(aes(x = rugged_std, y = delta)) + 
+  stat_lineribbon(.width = .95, fill = palette_pander(n = 8)[8], alpha = 3/4) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  annotate(geom = "text",
+           x = .2, y = 0,
+           label = "Africa higher GDP\nAfrica lower GDP",
+           family = "Times") +
+  labs(x = "ruggedness (standardized)",
+       y = "expected difference log GDP") +
+  coord_cartesian(xlim = c(0, 1),
+                  ylim = c(-0.3, 0.2))+
+  theme_minimal()
+  
+```
+
+This plot is counter-factual. There is no raw data here. Instead we are seeing through the model’s eyes and imagining comparisons between iden- tical nations inside and outside Africa, as if we could independently manipulate continent and also terrain ruggedness. Below the horizontal dashed line, African nations have lower expected GDP. This is the case for most terrain ruggedness values. But at the highest rugged- ness values, a nation is possibly better off inside Africa than outside it. Really it is hard to find any reliable difference inside and outside Africa, at high ruggedness values. It is only in smooth nations that being in Africa is a liability for the economy.
+
+Simple interactions are symmetric. Within the model, there’s no basis to prefer one interpretation over the other, because in fact they are the same interpretation. But when we reason causally about models, our minds tend to prefer one interpretation over the other, because it’s usually easier to imagine manipulating one of the predictor variables instead of the other. In this case, it’s hard to imagine manipulating which continent a nation is on. But it’s easy to imagine manipulating terrain ruggedness, by flattening hills or blasting tunnels through mountains. Africa’s unusually positive relationship with terrain ruggedness is due to historical causes, not contemporary terrain, then tunnels might improve economies in the present. At the same time, continent is not really a cause of economic activity. Rather there are historical and political factors associated with continents, and we use the continent variable as a proxy for those factors. It is manipulation of those other factors that would matter.
+
+
+### Continuous - Continuous Interactions
+
+Richard McElreath writes:
+
+>I want to convince the reader that interaction effects are difficult to interpret. They are nearly impossible to interpret, using only posterior means and standard deviations. Once interactions exist, multiple parameters are always in play at the same time. It is hard enough with the simple, categorical interactions from the terrain ruggedness example. Once we start modeling interactions among more than one continuous variables, it gets much harder. It’s one thing to make a slope conditional upon a category. In such a context, the model reduces to estimating a different slope for each category. But it’s quite a lot harder to understand that a slope varies in a continuous fashion with a continuous variable. Interpretation is much harder in this case, even though the mathematics of the model are essentially the same as in the categorical case.
+
+#### Tulips Example
+
+The data in this example are sizes of blooms from beds of tulips grown in greenhouses, under different soil and light conditions. The blooms column will be our outcome—what we wish to predict. The water and shade columns will be our predictor variables.
+
+Since both light and water help plants grow and produce blooms, it stands to reason that the independent effect of each will be to produce bigger blooms. But we’ll also be interested in the interaction between these two variables. In the absence of light, for example, it’s hard to see how water will help a plant—photosynthesis depends upon both light and water. Like- wise, in the absence of water, sunlight does a plant little good. One way to model such an interdependency is to use an interaction effect. In the absence of a good mechanistic model of the interaction, one that uses a theory about the plant’s physiology to hypothesize the functional relationship between light and water, then a simple linear two-way interaction is a good start. But ultimately it’s not close to the best that we could do.
+
+The causal DAG for this model is quite simple we have $\text{Water} \rightarrow \text{Bloom} \leftarrow \text{Shade}$. As before the DAG doesn't tell us the function through which Water and Shade jointly include Bloom. In principle, every unique combination of Water and Shade could have a different mean Bloom. But we'll start simpler.
+
+##### Model with No Interaction
+
+
+
+$$ \text{Bloom}_i \sim Normal(\mu_\text{Bloom}_i, \sigma)$$
+
+$$ \mu_{\text{Bloom}_i} = \alpha + \beta_W(\text{Water}_i - \overline{Water}) + \beta_S(\text{Shade}_i - \overline{Shade})$$
+```{r}
+
+tulips_clean <- tulips %>% 
+  mutate(water_z = (water - mean(water)),
+         shade_z = (shade - mean(shade)),
+         blooms_s = blooms / max(blooms))
+
+ggplot(data = tulips_clean)+
+  geom_jitter(aes(x = water_z, y = blooms_s, color = shade_z), height = 0, width = .03)
+
+```
+
+
+
+##### Model with Interaction
