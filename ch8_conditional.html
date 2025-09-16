@@ -152,9 +152,10 @@ window.Quarto = {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#continuous-with-discrete-interactions" id="toc-continuous-with-discrete-interactions" class="nav-link active" data-scroll-target="#continuous-with-discrete-interactions">Continuous with Discrete Interactions</a>
+  <li><a href="#discrete-continuous-interactions" id="toc-discrete-continuous-interactions" class="nav-link active" data-scroll-target="#discrete-continuous-interactions">Discrete ~Continuous Interactions</a>
   <ul class="collapse">
   <li><a href="#ruggedness-vs-gdp-in-africa" id="toc-ruggedness-vs-gdp-in-africa" class="nav-link" data-scroll-target="#ruggedness-vs-gdp-in-africa">Ruggedness vs GDP in Africa 🌍</a></li>
+  <li><a href="#continuous---continuous-interactions" id="toc-continuous---continuous-interactions" class="nav-link" data-scroll-target="#continuous---continuous-interactions">Continuous - Continuous Interactions</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -192,26 +193,26 @@ window.Quarto = {
 <p>Simple linear models frequently fail to provide enough conditioning, however. Every model so far in this book has assumed that each predictor has an independent association with the mean of the outcome. What if we want to allow the association to be conditional? For example, in the primate milk data from the previous chapters, suppose the relationship between milk energy and brain size varies by taxonomic group (ape, monkey, prosimian). This is the same as suggesting that the influence of brain size on milk energy is conditional on taxonomic group. The linear models of previous chapters cannot address this question.</p>
 <p>To model deeper conditionality—where the importance of one predictor depends upon another predictor—we need interaction (also known as moderation). Interaction is a kind of conditioning, a way of allowing parameters (really their posterior distributions) to be conditional on further aspects of the data.</p>
 <p>More generally, interactions are central to most statistical models beyond the cozy world of Gaussian outcomes and linear models of the mean. In generalized linear models (GLMs), even when one does not explicitly define variables as interacting, they will always interact to some degree. Multilevel models induce similar effects. Common sorts of multilevel models are essentially massive interaction models, in which estimates (intercepts and slopes) are conditional on clusters (person, genus, village, city, galaxy) in the data. Multilevel interaction effects are complex. They’re not just allowing the impact of a predictor variable to change depending upon some other variable, but they are also estimat- ing aspects of the distribution of those changes. This may sound like genius, or madness, or both. Regardless, you can’t have the power of multilevel modeling without it.</p>
-<section id="continuous-with-discrete-interactions" class="level2">
-<h2 class="anchored" data-anchor-id="continuous-with-discrete-interactions">Continuous with Discrete Interactions</h2>
+<section id="discrete-continuous-interactions" class="level2">
+<h2 class="anchored" data-anchor-id="discrete-continuous-interactions">Discrete ~Continuous Interactions</h2>
 <section id="ruggedness-vs-gdp-in-africa" class="level3">
 <h3 class="anchored" data-anchor-id="ruggedness-vs-gdp-in-africa">Ruggedness vs GDP in Africa 🌍</h3>
 <p>In this vignette we look at the Log gdp per capita of different countries. The more rugged the terrain the lower the gdp is on average, which fits a nice causal story of the harder it is to cross the land the less trade and wealth is created. This story is reversed though when we look at countries in Africa, as seen below in the figure.</p>
-<div class="cell">
+<div class="cell" data-layout-align="center">
 <div class="cell-output-display">
-<div>
+<div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-2-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-2-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="672"></p>
 </figure>
 </div>
 </div>
 </div>
 <p>What’s to make of the story? Maybe historical slavery has a lasting effect on the economies of african countries, the flatter more accessible regions of africa had slaving?</p>
-<div class="cell">
+<div class="cell" data-layout-align="center">
 <div class="cell-output-display">
-<div>
+<div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid figure-img" width="384"></p>
+<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="384"></p>
 </figure>
 </div>
 </div>
@@ -225,22 +226,22 @@ window.Quarto = {
 <ul class="nav nav-tabs" role="tablist"><li class="nav-item" role="presentation"><a class="nav-link active" id="tabset-1-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-1" role="tab" aria-controls="tabset-1-1" aria-selected="true">📈 μ heatmap</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-1-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-2" role="tab" aria-controls="tabset-1-2" aria-selected="false">🎛 Parameters</a></li></ul>
 <div class="tab-content">
 <div id="tabset-1-1" class="tab-pane active" role="tabpanel" aria-labelledby="tabset-1-1-tab">
-<div class="cell">
+<div class="cell" data-layout-align="center">
 <div class="cell-output-display">
-<div>
+<div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="672"></p>
 </figure>
 </div>
 </div>
 </div>
 </div>
 <div id="tabset-1-2" class="tab-pane" role="tabpanel" aria-labelledby="tabset-1-2-tab">
-<div class="cell">
+<div class="cell" data-layout-align="center">
 <div class="cell-output-display">
-<div>
+<div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid figure-img" width="960"></p>
+<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="960"></p>
 </figure>
 </div>
 </div>
@@ -264,22 +265,22 @@ window.Quarto = {
 <ul class="nav nav-tabs" role="tablist"><li class="nav-item" role="presentation"><a class="nav-link active" id="tabset-2-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-2-1" role="tab" aria-controls="tabset-2-1" aria-selected="true">Plot 1</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-2-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-2-2" role="tab" aria-controls="tabset-2-2" aria-selected="false">plot 2</a></li></ul>
 <div class="tab-content">
 <div id="tabset-2-1" class="tab-pane active" role="tabpanel" aria-labelledby="tabset-2-1-tab">
-<div class="cell">
+<div class="cell" data-layout-align="center">
 <div class="cell-output-display">
-<div>
+<div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="672"></p>
 </figure>
 </div>
 </div>
 </div>
 </div>
 <div id="tabset-2-2" class="tab-pane" role="tabpanel" aria-labelledby="tabset-2-2-tab">
-<div class="cell">
+<div class="cell" data-layout-align="center">
 <div class="cell-output-display">
-<div>
+<div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-9-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-9-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="672"></p>
 </figure>
 </div>
 </div>
@@ -289,11 +290,11 @@ window.Quarto = {
 </div>
 </div>
 <div id="tabset-3-2" class="tab-pane" role="tabpanel" aria-labelledby="tabset-3-2-tab">
-<div class="cell">
+<div class="cell" data-layout-align="center">
 <div class="cell-output-display">
-<div>
+<div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-10-1.png" class="img-fluid figure-img" width="960"></p>
+<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-10-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="960"></p>
 </figure>
 </div>
 </div>
@@ -302,11 +303,11 @@ window.Quarto = {
 </div>
 </div>
 <p>Adding Africa as an index covariate didn’t get that reversal of slopes that we saw in our first plot. But when we compare this model to not having the Africa index covariate with WAIC, its clearly superior. So the Africa variable is clearly picking up some important association in the data. African countries have a lower average Log GDP regardless of their ruggedness and that’s what our African index covariate supports.</p>
-<div class="cell">
+<div class="cell" data-layout-align="center">
 <div class="cell-output-display">
-<div>
+<div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-11-1.png" class="img-fluid figure-img" width="960"></p>
+<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-11-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="960"></p>
 </figure>
 </div>
 </div>
@@ -332,22 +333,22 @@ b8.0  -31.7       7.5    94.4      6.5         2.6    0.3   -188.9   13.0  </cod
 <ul class="nav nav-tabs" role="tablist"><li class="nav-item" role="presentation"><a class="nav-link active" id="tabset-4-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-4-1" role="tab" aria-controls="tabset-4-1" aria-selected="true">Plot 1</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-4-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-4-2" role="tab" aria-controls="tabset-4-2" aria-selected="false">plot 2</a></li></ul>
 <div class="tab-content">
 <div id="tabset-4-1" class="tab-pane active" role="tabpanel" aria-labelledby="tabset-4-1-tab">
-<div class="cell">
+<div class="cell" data-layout-align="center">
 <div class="cell-output-display">
-<div>
+<div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-13-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-13-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="672"></p>
 </figure>
 </div>
 </div>
 </div>
 </div>
 <div id="tabset-4-2" class="tab-pane" role="tabpanel" aria-labelledby="tabset-4-2-tab">
-<div class="cell">
+<div class="cell" data-layout-align="center">
 <div class="cell-output-display">
-<div>
+<div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-14-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-14-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="672"></p>
 </figure>
 </div>
 </div>
@@ -357,11 +358,11 @@ b8.0  -31.7       7.5    94.4      6.5         2.6    0.3   -188.9   13.0  </cod
 </div>
 </div>
 <div id="tabset-5-2" class="tab-pane" role="tabpanel" aria-labelledby="tabset-5-2-tab">
-<div class="cell">
+<div class="cell" data-layout-align="center">
 <div class="cell-output-display">
-<div>
+<div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-15-1.png" class="img-fluid figure-img" width="960"></p>
+<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-15-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="960"></p>
 </figure>
 </div>
 </div>
@@ -369,7 +370,7 @@ b8.0  -31.7       7.5    94.4      6.5         2.6    0.3   -188.9   13.0  </cod
 </div>
 </div>
 </div>
-<div class="cell">
+<div class="cell" data-layout-align="center">
 <div class="cell-output cell-output-stdout">
 <pre><code>     elpd_diff se_diff elpd_loo se_elpd_loo p_loo  se_p_loo looic  se_looic
 b8.2    0.0       0.0   129.5      7.3         5.0    0.9   -259.1   14.6  
@@ -377,15 +378,62 @@ b8.1   -3.4       3.3   126.1      7.5         4.2    0.8   -252.2   15.0
 b8.0  -35.1       7.5    94.4      6.5         2.6    0.3   -188.9   13.0  </code></pre>
 </div>
 <div class="cell-output-display">
-<div>
+<div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid figure-img" width="960"></p>
+<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="960"></p>
 </figure>
 </div>
 </div>
 </div>
+<p>Out interaction model performs best yet, it receives more than 95% of the model weight. Though the remaining weight percentage placed on our 2nd model, does mean there is some reason to think that our model is a bit overfit on its slopes.</p>
+<section id="section" class="level5">
+<h5 class="anchored" data-anchor-id="section"></h5>
+<p>The interaction there has two equally valid phrasings. (1) How much does the association between ruggedness and log GDP depend upon whether the nation is in Africa? (2) How much does the association of Africa with log GDP depend upon ruggedness?</p>
+<p>While these two possibilities sound different to most humans, our statistical engine thinks they are identical.</p>
+<div class="cell" data-layout-align="center">
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-17-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>This plot is counter-factual. There is no raw data here. Instead we are seeing through the model’s eyes and imagining comparisons between iden- tical nations inside and outside Africa, as if we could independently manipulate continent and also terrain ruggedness. Below the horizontal dashed line, African nations have lower expected GDP. This is the case for most terrain ruggedness values. But at the highest rugged- ness values, a nation is possibly better off inside Africa than outside it. Really it is hard to find any reliable difference inside and outside Africa, at high ruggedness values. It is only in smooth nations that being in Africa is a liability for the economy.</p>
+<p>Simple interactions are symmetric. Within the model, there’s no basis to prefer one interpretation over the other, because in fact they are the same interpretation. But when we reason causally about models, our minds tend to prefer one interpretation over the other, because it’s usually easier to imagine manipulating one of the predictor variables instead of the other. In this case, it’s hard to imagine manipulating which continent a nation is on. But it’s easy to imagine manipulating terrain ruggedness, by flattening hills or blasting tunnels through mountains. Africa’s unusually positive relationship with terrain ruggedness is due to historical causes, not contemporary terrain, then tunnels might improve economies in the present. At the same time, continent is not really a cause of economic activity. Rather there are historical and political factors associated with continents, and we use the continent variable as a proxy for those factors. It is manipulation of those other factors that would matter.</p>
+</section>
+</section>
+</section>
+<section id="continuous---continuous-interactions" class="level3">
+<h3 class="anchored" data-anchor-id="continuous---continuous-interactions">Continuous - Continuous Interactions</h3>
+<p>Richard McElreath writes:</p>
+<blockquote class="blockquote">
+<p>I want to convince the reader that interaction effects are difficult to interpret. They are nearly impossible to interpret, using only posterior means and standard deviations. Once interactions exist, multiple parameters are always in play at the same time. It is hard enough with the simple, categorical interactions from the terrain ruggedness example. Once we start modeling interactions among more than one continuous variables, it gets much harder. It’s one thing to make a slope conditional upon a category. In such a context, the model reduces to estimating a different slope for each category. But it’s quite a lot harder to understand that a slope varies in a continuous fashion with a continuous variable. Interpretation is much harder in this case, even though the mathematics of the model are essentially the same as in the categorical case.</p>
+</blockquote>
+<section id="tulips-example" class="level4">
+<h4 class="anchored" data-anchor-id="tulips-example">Tulips Example</h4>
+<p>The data in this example are sizes of blooms from beds of tulips grown in greenhouses, under different soil and light conditions. The blooms column will be our outcome—what we wish to predict. The water and shade columns will be our predictor variables.</p>
+<p>Since both light and water help plants grow and produce blooms, it stands to reason that the independent effect of each will be to produce bigger blooms. But we’ll also be interested in the interaction between these two variables. In the absence of light, for example, it’s hard to see how water will help a plant—photosynthesis depends upon both light and water. Like- wise, in the absence of water, sunlight does a plant little good. One way to model such an interdependency is to use an interaction effect. In the absence of a good mechanistic model of the interaction, one that uses a theory about the plant’s physiology to hypothesize the functional relationship between light and water, then a simple linear two-way interaction is a good start. But ultimately it’s not close to the best that we could do.</p>
+<p>The causal DAG for this model is quite simple we have <span class="math inline">\(\text{Water} \rightarrow \text{Bloom} \leftarrow \text{Shade}\)</span>. As before the DAG doesn’t tell us the function through which Water and Shade jointly include Bloom. In principle, every unique combination of Water and Shade could have a different mean Bloom. But we’ll start simpler.</p>
+<section id="model-with-no-interaction" class="level5">
+<h5 class="anchored" data-anchor-id="model-with-no-interaction">Model with No Interaction</h5>
+<p><span class="math display">\[ \text{Bloom}_i \sim Normal(\mu_\text{Bloom}_i, \sigma)\]</span></p>
+<p><span class="math display">\[ \mu_{\text{Bloom}_i} = \alpha + \beta_W(\text{Water}_i - \overline{Water}) + \beta_S(\text{Shade}_i - \overline{Shade})\]</span></p>
+<div class="cell" data-layout-align="center">
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="ch8_conditional_files/figure-html/unnamed-chunk-18-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="model-with-interaction" class="level5">
+<h5 class="anchored" data-anchor-id="model-with-interaction">Model with Interaction</h5>
 
 
+</section>
 </section>
 </section>
 </section>
