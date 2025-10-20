@@ -24,6 +24,8 @@ chimp <- chimpanzees
 
 ``` 
 
+
+
 We are modeling how seeing other Chimpanzees will effect the decision of a Chimpanzee subject to pull a pro-social option over a null alternative. We switch which hand the pro-social option is on to counter any bias the chimp might have in preferring one hand over the other.
 
 ![fig 2](/Users/jaden/Documents/Intellectual Fun/statisticalRethinking/chimpFig.png){width="600px" height="600px"}
@@ -39,6 +41,8 @@ $$ \text{logit}(p_i) = \alpha_\text{ACTOR[i]} + \beta_\text{TREATMENT[i]} $$
 
 $$\alpha_j \sim \text{Normal(0, 1.5)}$$
 $$\beta_k \sim \text{Normal(0, 0.5)} $$
+
+
 
 ```{r}
 #| fig-width: 5
@@ -96,7 +100,11 @@ post_chimp %>%
   theme_minimal()
 
 ```
+
+
 Each row is a chimpanzee, the numbers corresponding to the values in actor. Four of the individuals—numbers 1, 3, 4, and 5—show a preference for the right lever. Two individuals— numbers 2 and 7—show the opposite preference. Number 2’s preference is very strong in- deed. If you inspect the data, you’ll see that actor 2 never once pulled the right lever in any trial or treatment. 
+
+
 
 
 ```{r}
@@ -118,9 +126,13 @@ post_chimp %>%
   ylab(NULL) +
   theme_minimal()
 ```
+
+
 Looking our different treatment effects we should compare the "Pro-social on Left" against each other with the "Pro-social on Right". Note that probability 1 means that the chimps pulled the left lever 100% of the time, so when we consider the "Prosocial on Right" we should remember the lower the effect value the more pro-social they were.
 
 There doesn't look like to much evidence of a pro-social intention in these data. But let's calculate the differences between no-partner/partner and make sure. 
+
+
 
 ```{r}
 #| fig-width: 8
@@ -139,7 +151,11 @@ post_chimp %>%
   theme_minimal()
 ```
 
+
+
 These are the constrasts between the no-partner/partner treatments. The scale is log odds of pulling the left lever still. "Pro-social Right Difference" is the difference between no-partner/partner treatments when the prosocial option was on the right. So if there is evidence of more pro-social choice when partner is present, this will show up here as a larger difference, consistent with pulling right more when partner is present. There is indeed weak evidence that individuals pulled left more when the partner was absent, but the compatibility interval is quite wide.  "Pro-social Left Difference" is the same difference, but for when the prosocial option was on the left. Now negative differences would be consistent with more pro-social choice when partner is present. Clearly that is not the case. If anything, individuals chose pro-social more when partner was absent. Overall, there isn’t any compelling evidence of pro-social choice in this experiment.
+
+
 
 
 ```{r}
@@ -199,11 +215,15 @@ library(patchwork)
 
 ```
 
+
+
 The model expects almost no change when adding a partner. Most of the variation in predictions comes from the actor intercepts. Handedness seems to be the big story of this experiment.
 
 
 
 We haven’t considered a model that splits into separate index variables the location of the pro-social option and the presence of a partner. Why not? Because the driving hypothesis of the experiment is that the pro-social option will be chosen more when the partner is present. That is an interaction effect—the effect of the pro-social option depends upon a partner being present. But we could build a model without the interaction and the use PSIS or WAIC to compare it to m11.4. You can guess from the posterior distribution of m11.4 what would happen: The simpler model will do just fine, because there doesn’t seem to be any evidence of an interaction between location of the pro-social option and the presence of the partner.
+
+
 
 ```{r}
 chimp <- chimp %>% 
@@ -231,11 +251,15 @@ chimp_11.2 <- add_criterion(chimp_11.2, c("loo", "waic"))
 loo_compare(chimp_11.1, chimp_11.2, criterion = "loo") %>% print(simplify = F)
 ```
 
+
+
 As we guessed, the model without the interaction is really no worse, in expected predictive accuracy, than the model with it.
 
 
 
 In the chimpanzees data context, the models all calculated the likelihood of observing either zero or one pulls of the left-hand lever (a bernoulli outcome). The models did so, because the data were organized such that each row describes the outcome of a single pull. But in principle the same data could be organized differently. As long as we don’t care about the order of the individual pulls, the same information is contained in a count of how many times each individual pulled the left-hand lever, for each combination of predictor variables. This is truly using the binomial distribution as the outcome.
+
+
 
 ```{r}
 chimp_aggregated <- chimp %>%
@@ -279,7 +303,11 @@ bind_rows(as_draws_df(chimp_11.1),
 
 ```
 
+
+
 As we can see the beta estimated effects for each type of distribution are seamlessly handled to give the same result.
+
+
 
 
 ```{r}
@@ -293,10 +321,14 @@ loo(chimp_11.1)
 
 loo(chimp_11.3)
 ```
+
+
 But when we calculate different model criteria like leave one out (LOO) we get different results. Why? Because in the aggregated binomial model we leave out all 18 observations of one of the chimps not the 1 observation per trial of one of the chimps.
 
 
 Logistic modeling with different size N
+
+
 
 
 

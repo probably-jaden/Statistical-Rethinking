@@ -845,48 +845,48 @@ figs[[1]] + figs[[2]] + figs[[3]] + figs2[[1]] + figs2[[2]] + figs2[[3]]
 
 
 ```{r}
-# augment the data
-points <-
-  tulips_filtered %>%
-  expand_grid(fit = c("b8.4", "b8.5")) %>%
-  mutate(x_grid = str_c("shade_cent = ", shade_cent),
-         y_grid = fit)
-
-# redefine `nd`
-nd <- crossing(shade_cent = -1:1, 
-               water_cent = c(-1, 1))
-
-# use `fitted()`
-set.seed(8)
-
-rbind(fitted(b8.4, newdata = nd, summary = F, ndraws = 20),
-      fitted(b8.5, newdata = nd, summary = F, ndraws = 20)) %>%
-  # wrangle
-  data.frame() %>%
-  set_names(mutate(nd, name = str_c(shade_cent, water_cent, sep = "_")) %>% pull()) %>%
-  mutate(row = 1:n(),
-         fit = rep(c("b8.4", "b8.5"), each = n() / 2)) %>%
-  pivot_longer(-c(row:fit), values_to = "blooms_std") %>%
-  separate(name, into = c("shade_cent", "water_cent"), sep = "_") %>%
-  mutate(shade_cent = shade_cent %>% as.double(),
-         water_cent = water_cent %>% as.double()) %>%
-  # these will come in handy for `ggplot2::facet_grid()`
-  mutate(x_grid = str_c("shade_cent = ", shade_cent),
-         y_grid = fit) %>%
-  
-  # plot!
-  ggplot(aes(x = water_cent, y = blooms_std)) +
-  geom_line(aes(group = row),
-            color = palette_pander(n = 6)[6], alpha = 1/5, linewidth = 1/2) +
-  geom_point(data = points,
-             color = palette_pander(n = 6)[6]) +
-  scale_x_continuous("Water (centered)", breaks = c(-1, 0, 1)) +
-  scale_y_continuous("Blooms (standardized)", breaks = c(0, .5, 1)) +
-  ggtitle("Posterior predicted blooms") +
-  coord_cartesian(xlim = c(-1, 1),
-                  ylim = c(0, 1)) +
-  theme(strip.background = element_rect(fill = alpha(palette_pander(n = 2)[2], 1/3))) +
-  facet_grid(y_grid ~ x_grid)
+# # augment the data
+# points <-
+#   tulips_filtered %>%
+#   expand_grid(fit = c("b8.4", "b8.5")) %>%
+#   mutate(x_grid = str_c("shade_cent = ", shade_cent),
+#          y_grid = fit)
+# 
+# # redefine `nd`
+# nd <- crossing(shade_cent = -1:1, 
+#                water_cent = c(-1, 1))
+# 
+# # use `fitted()`
+# set.seed(8)
+# 
+# rbind(fitted(b8.4, newdata = nd, summary = F, ndraws = 20),
+#       fitted(b8.5, newdata = nd, summary = F, ndraws = 20)) %>%
+#   # wrangle
+#   data.frame() %>%
+#   set_names(mutate(nd, name = str_c(shade_cent, water_cent, sep = "_")) %>% pull()) %>%
+#   mutate(row = 1:n(),
+#          fit = rep(c("b8.4", "b8.5"), each = n() / 2)) %>%
+#   pivot_longer(-c(row:fit), values_to = "blooms_std") %>%
+#   separate(name, into = c("shade_cent", "water_cent"), sep = "_") %>%
+#   mutate(shade_cent = shade_cent %>% as.double(),
+#          water_cent = water_cent %>% as.double()) %>%
+#   # these will come in handy for `ggplot2::facet_grid()`
+#   mutate(x_grid = str_c("shade_cent = ", shade_cent),
+#          y_grid = fit) %>%
+#   
+#   # plot!
+#   ggplot(aes(x = water_cent, y = blooms_std)) +
+#   geom_line(aes(group = row),
+#             color = palette_pander(n = 6)[6], alpha = 1/5, linewidth = 1/2) +
+#   geom_point(data = points,
+#              color = palette_pander(n = 6)[6]) +
+#   scale_x_continuous("Water (centered)", breaks = c(-1, 0, 1)) +
+#   scale_y_continuous("Blooms (standardized)", breaks = c(0, .5, 1)) +
+#   ggtitle("Posterior predicted blooms") +
+#   coord_cartesian(xlim = c(-1, 1),
+#                   ylim = c(0, 1)) +
+#   theme(strip.background = element_rect(fill = alpha(palette_pander(n = 2)[2], 1/3))) +
+#   facet_grid(y_grid ~ x_grid)
 ```
 ```{r}
 logit <- function(p){
