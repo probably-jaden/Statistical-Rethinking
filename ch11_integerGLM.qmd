@@ -16,33 +16,44 @@ library(brms)
 library(rethinking)
 library(flextable)
 library(tidybayes)
+library(ggridges)
+library(ggtext)
+library(patchwork)
+library(ggdag)
+library(ggrepel)
+
+data(Kline)
+tools <- Kline
 data(UCBadmit)
 admit <- UCBadmit
 data(chimpanzees)
 chimp <- chimpanzees
 
+detach("package:rethinking", unload = TRUE)
+```
 
-``` 
+### Simple Logistic Model
 
 We are modeling how seeing other Chimpanzees will effect the decision of a Chimpanzee subject to pull a pro-social option over a null alternative. We switch which hand the pro-social option is on to counter any bias the chimp might have in preferring one hand over the other.
 
-![fig 2](/Users/jaden/Documents/Intellectual Fun/statisticalRethinking/chimpFig.png){width="600px" height="600px"}
+![fig 2](/Users/jaden/Documents/Intellectual%20Fun/statisticalRethinking/chimpFig.png){width="600px" height="600px"}
 
-
-Since our outcomes are binary (either pro-social or not) we are going to model the outcome with a binomial (technically bernoulli) distribution. Since we aren't directly using the gaussian this will be our first generalized linear model. 
+Since our outcomes are binary (either pro-social or not) we are going to model the outcome with a binomial (technically bernoulli) distribution. Since we aren't directly using the gaussian this will be our first generalized linear model.
 
 $$ \text{Lever Pulled}_i \sim \text{Binomial}(1, p_i) $$
 
-Generalized linear models usually need a link to transform their linear predictions into the non-linear nature of non-gaussian outcome distribution parameters. In this case we are modeling $p$ the probability that the left lever is pulled. 
+Generalized linear models usually need a link to transform their linear predictions into the non-linear nature of non-gaussian outcome distribution parameters. In this case we are modeling $p$ the probability that the left lever is pulled.
 
 $$ \text{logit}(p_i) = \alpha_\text{ACTOR[i]} + \beta_\text{TREATMENT[i]} $$
 
-$$\alpha_j \sim \text{Normal(0, 1.5)}$$
-$$\beta_k \sim \text{Normal(0, 0.5)} $$
+$$\alpha_j \sim \text{Normal(0, 1.5)}$$ $$\beta_k \sim \text{Normal(0, 0.5)} $$
 
 ```{r}
 #| fig-width: 5
 #| fig-height: 2
+
+
+
 
 chimp %>% 
   distinct(prosoc_left, condition) %>% 
@@ -64,6 +75,8 @@ chimp <-
 
 ```
 
+#### Model Effects
+
 ```{r}
 #| fig-width: 8
 #| fig-height: 2
@@ -78,7 +91,7 @@ chimp_11.1 <-
       prior = c(prior(normal(0, 1.5), nlpar = a),
                 prior(normal(0, 0.5), nlpar = b)),
       iter = 2000, warmup = 1000, chains = 4, cores = 4,
-      seed = 11, backend = "cmdstanr", file = "fits/b11.01.0")
+      seed = 11, backend = "cmdstanr", file = "fits/b11.01.0", silent = 2)
 
 post_chimp <- as_draws_df(chimp_11.1)
 
@@ -96,8 +109,8 @@ post_chimp %>%
   theme_minimal()
 
 ```
-Each row is a chimpanzee, the numbers corresponding to the values in actor. Four of the individuals—numbers 1, 3, 4, and 5—show a preference for the right lever. Two individuals— numbers 2 and 7—show the opposite preference. Number 2’s preference is very strong in- deed. If you inspect the data, you’ll see that actor 2 never once pulled the right lever in any trial or treatment. 
 
+Each row is a chimpanzee, the numbers corresponding to the values in actor. Four of the individuals—numbers 1, 3, 4, and 5—show a preference for the right lever. Two individuals— numbers 2 and 7—show the opposite preference. Number 2’s preference is very strong in- deed. If you inspect the data, you’ll see that actor 2 never once pulled the right lever in any trial or treatment.
 
 ```{r}
 #| fig-width: 8
@@ -118,9 +131,10 @@ post_chimp %>%
   ylab(NULL) +
   theme_minimal()
 ```
+
 Looking our different treatment effects we should compare the "Pro-social on Left" against each other with the "Pro-social on Right". Note that probability 1 means that the chimps pulled the left lever 100% of the time, so when we consider the "Prosocial on Right" we should remember the lower the effect value the more pro-social they were.
 
-There doesn't look like to much evidence of a pro-social intention in these data. But let's calculate the differences between no-partner/partner and make sure. 
+There doesn't look like to much evidence of a pro-social intention in these data. But let's calculate the differences between no-partner/partner and make sure.
 
 ```{r}
 #| fig-width: 8
@@ -139,8 +153,7 @@ post_chimp %>%
   theme_minimal()
 ```
 
-These are the constrasts between the no-partner/partner treatments. The scale is log odds of pulling the left lever still. "Pro-social Right Difference" is the difference between no-partner/partner treatments when the prosocial option was on the right. So if there is evidence of more pro-social choice when partner is present, this will show up here as a larger difference, consistent with pulling right more when partner is present. There is indeed weak evidence that individuals pulled left more when the partner was absent, but the compatibility interval is quite wide.  "Pro-social Left Difference" is the same difference, but for when the prosocial option was on the left. Now negative differences would be consistent with more pro-social choice when partner is present. Clearly that is not the case. If anything, individuals chose pro-social more when partner was absent. Overall, there isn’t any compelling evidence of pro-social choice in this experiment.
-
+These are the constrasts between the no-partner/partner treatments. The scale is log odds of pulling the left lever still. "Pro-social Right Difference" is the difference between no-partner/partner treatments when the prosocial option was on the right. So if there is evidence of more pro-social choice when partner is present, this will show up here as a larger difference, consistent with pulling right more when partner is present. There is indeed weak evidence that individuals pulled left more when the partner was absent, but the compatibility interval is quite wide. "Pro-social Left Difference" is the same difference, but for when the prosocial option was on the left. Now negative differences would be consistent with more pro-social choice when partner is present. Clearly that is not the case. If anything, individuals chose pro-social more when partner was absent. Overall, there isn’t any compelling evidence of pro-social choice in this experiment.
 
 ```{r}
 
@@ -184,9 +197,6 @@ p2 <-
                   fatten = 2.5, show.legend = F) + 
   labs(subtitle = "posterior predictions")
 
-# combine the two ggplots
-library(patchwork)
-
 (p1 / p2) &
   scale_color_manual(values = c(2:1)) &
   scale_y_continuous("proportion left lever", 
@@ -201,7 +211,7 @@ library(patchwork)
 
 The model expects almost no change when adding a partner. Most of the variation in predictions comes from the actor intercepts. Handedness seems to be the big story of this experiment.
 
-
+#### Modeling without interaction
 
 We haven’t considered a model that splits into separate index variables the location of the pro-social option and the presence of a partner. Why not? Because the driving hypothesis of the experiment is that the pro-social option will be chosen more when the partner is present. That is an interaction effect—the effect of the pro-social option depends upon a partner being present. But we could build a model without the interaction and the use PSIS or WAIC to compare it to m11.4. You can guess from the posterior distribution of m11.4 what would happen: The simpler model will do just fine, because there doesn’t seem to be any evidence of an interaction between location of the pro-social option and the presence of the partner.
 
@@ -223,7 +233,7 @@ chimp_11.2 <-
                 prior(normal(0, 0.5), nlpar = bs),
                 prior(normal(0, 0.5), nlpar = bc)),
       iter = 2000, warmup = 1000, chains = 4, cores = 4,
-      seed = 11, backend = "cmdstanr", file = "fits/b11.02.0")
+      seed = 11, backend = "cmdstanr", file = "fits/b11.02.0", silent = 2)
 
 chimp_11.1 <- add_criterion(chimp_11.1, c("loo", "waic"))
 chimp_11.2 <- add_criterion(chimp_11.2, c("loo", "waic"))
@@ -233,11 +243,11 @@ loo_compare(chimp_11.1, chimp_11.2, criterion = "loo") %>% print(simplify = F)
 
 As we guessed, the model without the interaction is really no worse, in expected predictive accuracy, than the model with it.
 
-
-
 In the chimpanzees data context, the models all calculated the likelihood of observing either zero or one pulls of the left-hand lever (a bernoulli outcome). The models did so, because the data were organized such that each row describes the outcome of a single pull. But in principle the same data could be organized differently. As long as we don’t care about the order of the individual pulls, the same information is contained in a count of how many times each individual pulled the left-hand lever, for each combination of predictor variables. This is truly using the binomial distribution as the outcome.
 
 ```{r}
+#| fig-width: 8
+#| fig-height: 3
 chimp_aggregated <- chimp %>%
   group_by(treatment, actor, side, cond) %>%
   summarise(left_pulls = sum(pulled_left)) %>% 
@@ -254,7 +264,7 @@ chimp_11.3 <-
       prior = c(prior(normal(0, 1.5), nlpar = a),
                 prior(normal(0, 0.5), nlpar = b)),
       iter = 2000, warmup = 1000, chains = 4, cores = 4,
-      seed = 11, backend = "cmdstanr", file = "fits/b11.03.0")
+      seed = 11, backend = "cmdstanr", silent = 2, file = "fits/b11.03.0")
 
 
 bind_rows(as_draws_df(chimp_11.1),
@@ -281,8 +291,8 @@ bind_rows(as_draws_df(chimp_11.1),
 
 As we can see the beta estimated effects for each type of distribution are seamlessly handled to give the same result.
 
-
 ```{r}
+
 chimp_11.1 <- add_criterion(chimp_11.1, "loo")
 chimp_11.3 <- add_criterion(chimp_11.3, "loo")
 
@@ -293,66 +303,745 @@ loo(chimp_11.1)
 
 loo(chimp_11.3)
 ```
+
 But when we calculate different model criteria like leave one out (LOO) we get different results. Why? Because in the aggregated binomial model we leave out all 18 observations of one of the chimps not the 1 observation per trial of one of the chimps.
 
+### Logistic modeling with different size N
 
-Logistic modeling with different size N
+We are looking to see if there is a gender bias in the admission to different UC Berkeley academic departments. Since we are looking at admitted or not admitted our data will be bernoulli 1's or 0's. Our model takes the mathematical form
+
+$$ \text{Admitted}_i \sim \text{Binomial}(N_i, p_i) $$
+
+$$ \text{Logit}(p_i) = \alpha_\text{Gender[i]} $$ $$\alpha_j \sim \text{Normal}(0, 1.5) $$
+
+#### Model Effects
+
+```{r}
+#| fig-width: 8
+#| fig-height: 2.5
+
+admit_1 <- admit %>% 
+  mutate(gender_id = as.factor(ifelse(applicant.gender == "male", 1, 2))) %>% 
+  dplyr::select(c(admit, applications, reject, gender_id))
+
+
+admit_11.1 <- brm(
+  data = admit_1,
+  family = binomial,
+  admit | trials(applications) ~ 0 + gender_id,
+  prior(normal(0, 1.5), class = b),
+  iter = 2000, warmup = 1000, cores = 4, chains = 4, 
+  seed = 11, file = "fits/admit.01.1", backend = "cmdstanr", silent = 2
+)
+
+admit_1_diffs  <- as_draws_df(admit_11.1) %>% 
+  mutate("diff_logit" = b_gender_id1 - b_gender_id2,
+         "diff_prob" = inv_logit(b_gender_id1) - inv_logit(b_gender_id2)) #%>% 
+  #dplyr::select(c("Gender difference logit scale", "Gender difference in probabilities"))
+
+
+admit_1_diffs %>% 
+  dplyr::select(c("b_gender_id1", "b_gender_id2", "diff_logit")) %>% 
+  rename("Male" = "b_gender_id1",
+         "Female" = "b_gender_id2",
+         "Male - Female" = "diff_logit") %>% 
+  pivot_longer(everything()) %>% 
+  mutate(name = factor(name, 
+                       levels = c("Male - Female", "Female", "Male"))) %>%  # Reversed for bottom-to-top display
+  ggplot(aes(x = value, y = name, fill = name, color = name)) +
+    geom_density_ridges(adjust = 1.5, alpha = 0.7) +
+    scale_fill_manual(values = c("Male" = "blue", 
+                                  "Female" = "deeppink", 
+                                  "Male - Female" = "purple")) +
+    scale_color_manual(values = c("Male" = "blue4", 
+                                  "Female" = "deeppink3", 
+                                  "Male - Female" = "purple4")) +
+  theme_minimal()+
+  theme(legend.position = "none")+
+  labs(title = "Logit Scale Effects", x = "Log Odds Effect", y = "")
+
+```
+
+The log-odds difference is certainly positive, corresponding to a higher probability of admission for male applicants.
+
+```{r}
+#| fig-width: 8
+#| fig-height: 2.5
+admit_1_diffs %>% 
+  dplyr::select(c("b_gender_id1", "b_gender_id2", "diff_prob")) %>% 
+  rename("Male" = "b_gender_id1",
+         "Female" = "b_gender_id2",
+         "Male - Female" = "diff_prob") %>% 
+  pivot_longer(everything()) %>% 
+  mutate(name = factor(name, 
+                       levels = c("Male - Female", "Female", "Male"))) %>%  # Reversed for bottom-to-top display
+  ggplot(aes(x = value, y = name, fill = name, color = name)) +
+    geom_density_ridges(adjust = 1.5, alpha = 0.7) +
+    scale_fill_manual(values = c("Male" = "blue", 
+                                  "Female" = "deeppink", 
+                                  "Male - Female" = "purple")) +
+    scale_color_manual(values = c("Male" = "blue4", 
+                                  "Female" = "deeppink3", 
+                                  "Male - Female" = "purple4")) +
+  theme_minimal()+
+  theme(legend.position = "none")+
+  labs(title = "Probability Effects", x = "Probability Effect", y = "")
+
+```
+
+On the probability scale itself, the difference is somewhere between 12% and 16%.
+
+#### posterior predictions
+
+```{r}
+#| fig-width: 8
+#| fig-height: 4
+admit <- admit %>% 
+  mutate(case = factor(1:n()))
+
+admit_PPD <- predict(admit_11.1) %>% 
+  data.frame() %>% 
+  bind_cols(admit)
+
+text <-
+  admit %>%
+  group_by(dept) %>%
+  summarise(case  = mean(as.numeric(case)),
+            admit = mean(admit / applications) + .05)
+
+admit_PPD %>% 
+  ggplot(aes(x = case, y = admit / applications)) +
+  geom_pointrange(aes(y    = Estimate / applications,
+                      ymin = Q2.5     / applications ,
+                      ymax = Q97.5    / applications),
+                  color = "skyblue3",
+                  shape = 1, alpha = .8) +
+  geom_point(color = "orange") +
+  geom_line(aes(group = dept),
+            color = "orange") +
+  geom_text(data = text,
+            aes(y = admit, label = dept),
+            color = "orange",
+            family = "serif") +
+  scale_y_continuous("Proportion admitted", limits = 0:1) +
+  labs(title = "Posterior validation check", 
+       caption = ("Orange points are observations. With the first point in the line being male proportion of admissions and the latter female. 
+                  Blue lines represent the models prediction distributions"))+
+  theme_minimal() +
+  theme(axis.ticks.x = element_blank(),
+        plot.caption = element_text(hjust = 0.5))
+
+```
+
+Those are pretty terrible predictions. There are only two departments in which females had a lower rate of admission than males (C and E), and yet the model says that females should expect to have a 14% lower chance of admission.
+
+The model did correctly answer the question we asked of it: *What are the average probabilities of admission for females and males*, across all departments? The problem in this case is that males and females do not apply to the same departments, and departments vary in their rates of admission. This makes the answer misleading. You can see the steady decline in admission probability for both males and females from department A to department F. Females in these data tended not to apply to departments like A and B, which had high overall admission rates. Instead they applied in large numbers to departments like F, which admitted less than 10% of applicants.
+
+So while it is true overall that females had a lower probability of admission in these data, it is clearly not true within most departments. And note that just inspecting the posterior distribution alone would never have revealed that fact to us. We had to appeal to something outside the fit model. In this case, it was a simple posterior validation check.
+
+#### Addressing Confounds
+
+Instead of asking “*What are the average probabilities of admission for females and males across all departments?”* we want to ask *“What is the average difference in probability of admission between females and males within departments?*” In order to ask the second question, we estimate unique female and male admission rates in each department. Here’s a model that asks this new question:
+
+$$\text{Admission}_i \sim \text{Binomial}(N_i, p_i) $$
+
+$$\text{logit}(p_i) = \alpha_\text{Gender[i]} + \delta_\text{Department[i]} $$
+
+$$\alpha_j \sim \text{Normal}(0, 1.5) $$
+
+$$ \delta_j \sim \text{Normal}(0, 1.5) $$
+
+So now each department gets it's own log-odds of admissions.
+
+```{r}
+admit_11.2 <- brm(
+  data = admit,
+  family = binomial,
+  bf(admit | trials(applications) ~ a + d,
+     a ~ 0 + applicant.gender,
+     d ~ 0 + dept,
+     nl = TRUE),
+  prior = c(prior(normal(0, 1.5), nlpar = a),
+            prior(normal(0, 1.5), nlpar = d)),
+  iter = 2000, warmup = 1000, cores =4, seed = 11,
+  file = "fits/admit.11.02.1", silent = 2, backend = "cmdstanr"
+)
+
+  
+```
+
+```{r}
+#| fig-width: 8
+#| fig-height: 2.5
+
+admit_2_diffs  <- as_draws_df(admit_11.2) %>% 
+  mutate("diff_logit" = b_a_applicant.gendermale - b_a_applicant.genderfemale,
+         "diff_prob" = inv_logit(b_a_applicant.gendermale) - inv_logit(b_a_applicant.genderfemale)) #%>% 
+  #dplyr::select(c("Gender difference logit scale", "Gender difference in probabilities"))
+
+
+admit_2_diffs %>% 
+  dplyr::select(c("b_a_applicant.gendermale", "b_a_applicant.genderfemale", "diff_logit")) %>% 
+  rename("Male" = "b_a_applicant.gendermale",
+         "Female" = "b_a_applicant.genderfemale",
+         "Male - Female" = "diff_logit") %>% 
+  pivot_longer(everything()) %>% 
+  mutate(name = factor(name, 
+                       levels = c("Male - Female", "Female", "Male"))) %>%  # Reversed for bottom-to-top display
+  ggplot(aes(x = value, y = name, fill = name, color = name)) +
+    geom_density_ridges(adjust = 1.5, alpha = 0.7) +
+    scale_fill_manual(values = c("Male" = "blue", 
+                                  "Female" = "deeppink", 
+                                  "Male - Female" = "purple")) +
+    scale_color_manual(values = c("Male" = "blue4", 
+                                  "Female" = "deeppink3", 
+                                  "Male - Female" = "purple4")) +
+  theme_minimal()+
+  theme(legend.position = "none")+
+  labs(title = "Logit Scale Effects", x = "Log Odds Effect", y = "")
+```
+
+```{r}
+#| fig-width: 8
+#| fig-height: 2.5
+
+admit_2_diffs %>% 
+  dplyr::select(c("b_a_applicant.gendermale", "b_a_applicant.genderfemale", "diff_prob")) %>% 
+  rename("Male" = "b_a_applicant.gendermale",
+         "Female" = "b_a_applicant.genderfemale",
+         "Male - Female" = "diff_prob") %>% 
+  mutate(Male = inv_logit(Male),
+         Female = inv_logit(Female)) %>% 
+  pivot_longer(everything()) %>% 
+  mutate(name = factor(name, 
+                       levels = c("Male - Female", "Female", "Male"))) %>%  # Reversed for bottom-to-top display
+  ggplot(aes(x = value, y = name, fill = name, color = name)) +
+    geom_density_ridges(adjust = 1.5, alpha = 0.7) +
+    scale_fill_manual(values = c("Male" = "blue", 
+                                  "Female" = "deeppink", 
+                                  "Male - Female" = "purple")) +
+    scale_color_manual(values = c("Male" = "blue4", 
+                                  "Female" = "deeppink3", 
+                                  "Male - Female" = "purple4")) +
+  theme_minimal()+
+  theme(legend.position = "none")+
+  labs(title = "Probability Effects", x = "Probability Effect", y = "")
+```
+
+If male applicants have it worse, it is only by a very small amount, about 2% on average.
+
+Why did adding departments to the model change the inference about gender so much? The earlier figure gives you a hint—the rates of admission vary a lot across departments. Furthermore, females and males tend to apply to different departments. Let’s do a quick tabulation to show that:
+
+```{r}
+admit %>% 
+  group_by(dept) %>% 
+  mutate(proportion = applications / sum(applications)) %>% 
+  dplyr::select(dept, applicant.gender, proportion) %>% 
+  pivot_wider(names_from = dept,
+              values_from = proportion) %>% 
+  mutate_if(is.double, round, digits = 2)
+
+```
+
+Department A receives 88% of its applications from males. Department E receives 33% from males. Now look back at the delta posterior means in the in our last model. The departments with a larger proportion of female applicants are also those with lower overall admissions rates.
+
+```{r}
+#| fig-width: 4
+#| fig-height: 2
+dag_coords <-
+  tibble(name = c("G", "D", "A"),
+         x    = c(1, 2, 3),
+         y    = c(1, 2, 1))
+
+dagify(D ~ G,
+       A ~ D + G,
+       coords = dag_coords) %>%
+  
+  ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+  geom_dag_text(color = "black", family = "serif") +
+  geom_dag_edges() + 
+  scale_x_continuous(NULL, breaks = NULL) +
+  scale_y_continuous(NULL, breaks = NULL)
+```
+
+If we presume gender influences both choice of department and admission rates, we might depict that in a simple DAG where $G$ is applicant gender, $D$ is department, and $A$ is acceptance into grad school.
+
+There is an indirect causal path $G \rightarrow D \rightarrow A$ from gender to acceptance. So to infer the direct effect $G \rightarrow A$, we need to condition on $D$ and close the indirect path.
+
+If we make another posterior predictive plot, we’ll see conditioning on both substantially improved how good our predictions match the data.
+
+```{r}
+#| fig-width: 8
+#| fig-height: 4
+
+predict(admit_11.2) %>% 
+  data.frame() %>% 
+  bind_cols(admit) %>% 
+  ggplot(aes(x = case, y = admit / applications)) +
+  geom_pointrange(aes(y = Estimate / applications,
+                      ymin = Q2.5 / applications ,
+                      ymax = Q97.5 / applications),
+                  color = "skyblue3",
+                  shape = 1, alpha = .8) +
+  geom_point(color = "orange") +
+  geom_line(aes(group = dept),
+            color = "orange") +
+  geom_text(data = text,
+            aes(y = admit, label = dept),
+            color = "orange",
+            family = "serif") +
+  scale_y_continuous("Proportion admitted", limits = 0:1) +
+  labs(title = "Posterior validation check",
+       subtitle = "Though imperfect, this model is a big improvement") +
+  theme_minimal() +
+  theme(axis.ticks.x = element_blank())
+  
+```
+
+This empirical example is a famous one in statistical teaching. It is often used to illustrate a phenomenon known as Simpson’s paradox. Like most paradoxes, there is no violation of logic, just of intuition. And since different people have different intuition, Simpson’s paradox means different things to different people. The poor intuition being violated in this case is that a positive association in the entire population should also hold within each department. Overall, females in these data did have a harder time getting admitted to graduate school. But that arose because females applied to the hardest departments for anyone, male or female, to gain admission to.
+
+Perhaps a little more paradoxical is that this phenomenon can repeat itself indefinitely within a sample. Any association between an outcome and a predictor can be nullified or reversed when another predictor is added to the model. And the reversal can reveal a true causal influence or rather just be a confound. All that we can do about this is to remain skeptical of models and try to imagine ways they might be deceiving us. Thinking causally about these settings usually helps.
+
+#### Additional Confounding
+
+Don’t get too excited however that conditioning on department is sufficient to estimate the direct causal effect of gender on admissions. What if there are unobserved confounds influencing both department and admissions? Like this:
+
+```{r}
+#| fig-width: 5
+#| fig-height: 2.5
+dag_coords <-
+  tibble(name = c("G", "D", "A", "U"),
+         x    = c(1, 2, 3, 3),
+         y    = c(1, 2, 1, 2))
+
+dagify(D ~ G + U,
+       A ~ D + G + U,
+       coords = dag_coords) %>%
+  
+  ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+  geom_point(x = 3, y = 2, 
+             size = 5, color = "grey", fill = "black") +
+  geom_dag_text(color = "black", family = "serif") +
+  geom_dag_edges() + 
+  scale_x_continuous(NULL, breaks = NULL) +
+  scale_y_continuous(NULL, breaks = NULL)
+```
+
+What could $U$ be? How about academic ability. Ability could influence choice of department and probability of admission. In that case, conditioning on department is conditioning on a collider, and it opens a non-causal path between gender and admissions, $G \rightarrow D \leftarrow U \rightarrow A$.
+
+### Poisson Regression
+
+If we go fishing and return with 17 fish, could we model this with a binomial outcome? Binomial's assume an upper limit of an outcome (you can only get 10 heads as the max if you flip a coin 10 times). Is there an upper limit to how many fish we could catch? Yes sort of - we'll have to say that it's a very high limit and that the p (probability) is very small.
+
+For example, suppose you own a monastery that is in the business, like many monasteries before the invention of the printing press, of copying manuscripts. You employ 1000 monks, and on any particular day about 1 of them finishes a manuscript. Since the monks are working independently of one another, and manuscripts vary in length, some days produce 3 or more manuscripts, and many days produce none. Since this is a binomial process, you can calculate the variance across days as Np(1 − p) = 1000(0.001)(1 − 0.001) ≈ 1. You can simulate this, for example over 10,000 (1e5) days:
+
+```{r}
+y <- rbinom(1e5,1000,1/1000)
+c( mean(y) , var(y) )
+```
+
+The mean and the variance are nearly identical. This is a special shape of the binomial. This special shape is known as the Poisson distribution, and it is useful because it allows us to model binomial events for which the number of trials N is unknown or uncountably large.
+
+Suppose for example that you come to own, through imperial drama, another monastery. You don’t know how many monks toil within it, but your advisors tell you that it produces, on average, 2 manuscripts per day. With this information alone, you can infer the entire distribution of numbers of manuscripts completed each day.
+
+We could model this other monastery like:
+
+$$ \text{Manuscripts Produced Per Day}_i \sim \text{Poisson}(\lambda) $$
+
+To model $\lambda$ we will need a log-link function to constrain our predictions of $lambda$ to be positive which the Poisson distribution requires.
+
+$$ \text{log}(\lambda_i) = \alpha + \beta(x_i - \bar{x}) $$
+
+This log-link implies an exponential relationship between predictors and the expected value. Exponential relationships grow very quickly, and few natural phenomena can remain exponential for long. So one thing to always check with a log link is whether it makes sense at all ranges of the predictor variables. The priors on the log scale also scale in surprising ways. So prior predictive simulation is again helpful.
+
+#### Oceania tool complexity
+
+The island societies of Oceania provide a natural experiment in technological evolution. Different historical island populations possessed tool kits of different size. These kits include fish hooks, axes, boats, hand plows, and many other types of tools. A number of theories predict that larger populations will both develop and sustain more complex tool kits. So the natural variation in population size induced by natural variation in island size in Oceania provides a natural experiment to test these ideas. It’s also suggested that contact rates among populations effectively increase population size, as it’s relevant to technological evolution. So variation in contact rates among Oceanic societies is also relevant.
+
+```{r}
+tools
+```
+
+This is a really small dataset, we need to keep in mind though that the number of rows is not clearly the same as the sample size in a count model. The relationship between parameters and “degrees of freedom” is not simple, outside of simple linear regressions. Any rules you’ve been taught about minimum sample sizes for inference are just non-Bayesian superstitions. If you get the prior back, then the data aren’t enough. It’s that simple.
+
+The total_tools variable will be the outcome variable. We’ll model the idea that: - (1) The number of tools increases with the log population size. Why log? Because that’s what the theory says, that it is the order of magnitude of the population that matters, not the absolute size of it. So we’ll look for a positive association between total_tools and log population.
+
+(2) The number of tools increases with the contact rate among islands. No nation is an island, even when it is an island. Islands that are better networked may acquire or sustain more tool types.
+
+(3) The impact of population on tool counts is moderated by high contact. This is to say that the association between total_tools and log population depends upon contact. So we will look for a positive interaction between log population and contact rate.
+
+$$ \text{Number of Tools}_i \sim \text{Poisson}(\lambda_i) $$
+
+$$ \text{log}\lambda_i = \alpha_\text{Contact Level[i]} + \beta_\text{Contact Level[i]}\text{log}P_i $$
+
+```{r}
+#| fig-width: 8
+#| fig-height: 3
+prior_tools <- tibble(bad = exp(rnorm(1e6, 0 , 10)),
+                      good = exp(rnorm(1e6, 3, 0.5)))
+
+prior_tools %>% 
+ # pivot_longer(everything()) %>% 
+  ggplot()+
+  geom_density(aes(x = bad), color = "grey30", lwd = 1.5, adjust = 2) +
+  geom_density(aes(x = good), color = "skyblue3", lwd = 1.5, adjust = 2) +
+  xlim(c(0, 80))+
+  ylim(c(0, 0.08))+
+  annotate("text", label = "a ~ dnorm(0, 10)", x = 15, y = 0.06, color = "grey20") + 
+  annotate("text", label = "a ~ dnorm(3, 0.5)", x = 40, y = 0.03, color = "skyblue4")+
+  labs(x = "mean number of tools", y = "Density", title = "Prior Comparison")+
+  theme_minimal()
+
+
+
+```
+
+It's tempting to give a very broad prior for our parameters like $\alpha ~ \text{Normal(0, 10)}$. But since we are priors are ultimately log-normal in the link transformed space that would give us an expected exp(50) number of tools. A truly astronomical amount of tools. Much better off to go with a more reasonable $\alpha ~ \text{Normal(3, 0.5)}$ which has an expected \~20 tools.
+
+$$ \alpha_j \sim \text{Normal(3, 0.5)}$$
+
+Now we need a prior for $\beta$, the coefficient of the log population. Let's again consider a conventional flat prior and then a more reasonable constrained one.
+
+```{r}
+#| fig-height: 3
+#| fig-width: 8
+
+N <- 1e2
+
+tibble(i = 1:N,
+       a = rnorm(N, 3, 0.5)) %>% 
+  mutate(
+    `beta%~%Normal(0*', '*10)` = rnorm(N, 0, 10),
+    `beta%~%Normal(0*', '*0.2)` = rnorm(N, 0, 0.2)) %>%
+  pivot_longer(contains("beta"),
+               values_to = "b",
+               names_to = "prior") %>% 
+  expand_grid(x = seq(from = -2, to = 2, length.out = N)) %>% 
+  ggplot(aes(x = x, y = exp(a + b * x), group = i, color = prior)) + 
+  geom_line(linewidth = .5, alpha = .3, show.legend = F) +
+
+  labs(x = "log population (std)", 
+       y = "total tools") +
+  coord_cartesian(ylim = c(0, 100)) +
+  facet_wrap(~ prior, labeller = label_parsed)+
+  theme_minimal() +
+  scale_color_manual(values = c("orange2", "skyblue3"))
+  
+
+```
+
+The conservative $\beta \sim \text{Normal(0, 10)}$ gives insane predictions. Saying that just 1 std deviation from the avg island population leads to thousands of tools is ridiculous.
+
+To get a better grasp of what our more reasonable $\beta \sim \text{Normal(0, 0.2)}$ prior looks like we can make the population into it's un-standardized and non-logged transforms. 
+  
+```{r}
+#| fig-height: 3
+#| fig-width: 8
+
+set.seed(11)
+
+prior <-
+  tibble(i = 1:N,
+         a = rnorm(N, mean = 3, sd = 0.5),
+         b = rnorm(N, mean = 0, sd = 0.2)) %>% 
+  expand_grid(x = seq(from = log(100), to = log(200000), length.out = 100))
+
+# left
+p1 <-
+  prior %>% 
+  ggplot(aes(x = x, y = exp(a + b * x), group = i)) +
+  geom_line(linewidth = 1/4, alpha = 2/3,
+            color = "orange2") +
+  labs(subtitle = expression('Unstandardized - '*beta%~%Normal(0*', '*0.2)),
+       x = "log population",
+       y = "total tools") +
+  coord_cartesian(xlim = c(log(100), log(200000)),
+                  ylim = c(0, 500))+
+  theme_minimal()
+# right
+p2 <-
+  prior %>% 
+  ggplot(aes(x = exp(x), y = exp(a + b * x), group = i)) +
+  geom_line(linewidth = 1/4, alpha = 2/3,
+            color = "orange2") +
+  labs(subtitle = expression('Non-logged - '*beta%~%Normal(0*', '*0.2)),
+       x = "population",
+       y = "total tools") +
+  coord_cartesian(xlim = c(100, 200000),
+                  ylim = c(0, 500)) +
+  theme_minimal()
+
+# combine
+p1 | p2
+
+
+```
+
+$$ \beta_j \sim $$
+
+```{r}
+tools <- tools %>% 
+  mutate(log_pop = log(population),
+         log_pop_std = (log_pop - mean(log_pop))/sd(log_pop),
+         contact_id = ifelse(contact == "low", 1, 2))
+
+
+#intercept only
+tools_11.1 <- brm(
+  data = tools,
+  family = poisson,
+  total_tools ~ 1, 
+  prior(normal(3, 0.5), class = Intercept),
+  iter = 2000, warmup = 1000, cores = 4, chains = 4, seed = 11,
+  file = "fits/tools_11.01.0", backend = "cmdstanr", silent = 2
+)
+
+# interaction model
+tools_11.2 <- brm(
+  data = tools,
+  family = poisson,
+  bf(total_tools ~ a + b * log_pop_std,
+     a + b ~ 0 + contact,
+     nl = TRUE),
+  prior = c(prior(normal(3, 0.5), nlpar = a),
+            prior(normal(0, 0.2), nlpar = b)),
+  iter = 2000, warmup = 1000, cores = 4, chains = 4, seed = 11,
+  file = "fits/tools_11.02.0", backend = "cmdstanr", silent = 2
+)
+
+tools_11.3 <- brm(
+  data = tools,
+  family = poisson,
+  bf(total_tools ~ a + b * log_pop_std,
+     a + b ~ 0 + contact_id,
+     nl = TRUE),
+  prior = c(prior(normal(3, 0.5), nlpar = a),
+            prior(normal(0, 0.2), nlpar = b)),
+  iter = 2000, warmup = 1000, cores = 4, chains = 4, seed = 11,
+  file = "fits/tools_11.03.0", backend = "cmdstanr", silent = 2
+)
+
+
+
+```
+
+
+```{r}
+#| fig-width: 8
+#| fig-height: 3
+
+predict(tools_ll.1) %>% 
+  cbind(tools) %>% 
+  ggplot(aes(x = culture)) +
+  geom_pointrange(aes(y = Estimate, ymin = `Q2.5`, ymax = `Q97.5`), color = "skyblue2", alpha = .5, lwd = 1.5)+
+  geom_point(aes(y = total_tools), color = "grey20", size = 3)+
+  theme_minimal()+
+  labs(title = "Intercept only model", x = "", y = "Total Tools")
+
+```
+
+```{r}
+#| fig-width: 8
+#| fig-height: 3
+
+predict(tools_11.2) %>% 
+  cbind(tools) %>% 
+  ggplot(aes(x = culture)) +
+  geom_pointrange(aes(y = Estimate, ymin = `Q2.5`, ymax = `Q97.5`), color = "skyblue2", alpha = .5, lwd = 1.5)+
+  geom_point(aes(y = total_tools), color = "grey20", size = 3)+
+  theme_minimal()+
+  labs(title = "Contact + Population Model", x = "", y = "Total Tools")
+```
+
+The intercept alone model looks clearly inferior to our "Contact + Population" model, but let's check with LOO to make sure we aren't overfitting.
+
+```{r}
+tools_ll.1  <- add_criterion(tools_ll.1, "loo")
+tools_11.2 <- add_criterion(tools_11.2, "loo")
+
+loo_compare(tools_ll.1, tools_11.2, criterion = "loo") %>% print(simplify = F)
+```
+
+When we generate these LOO comparsions we get some warnings about the Pareto $k$ values. Let's get a closer inspection.
+
+```{r}
+loo(tools_11.2) %>% loo::pareto_k_table()
+```
+
+Looks like we have 2 quite influential observations. Lets looks at each islands pareto $k$ value
+
+```{r}
+tibble(culture = tools$culture,
+       k       = tools_11.2$criteria$loo$diagnostics$pareto_k) %>% 
+  arrange(desc(k)) %>% 
+  mutate_if(is.double, round, digits = 2) %>% 
+  pivot_wider(names_from = culture, 
+              values_from = k)
+```
+It turns out Tonga and Hawai'i are very influential. The plot below will clarify why
+
+```{r}
+#| fig-width: 8
+#| fig-height: 3
+cultures <- c("Tonga", "Hawaii", "Trobriand", "Yap")
+
+newData <- distinct(tools, contact) %>% 
+  expand_grid(log_pop_std = seq(from = -4, to = 2.3, length.out = 100))
+
+fitToolModel <-
+  fitted(tools_11.2, newdata = newData, 
+                       probs = c(.045, .955)) %>% 
+  data.frame() %>% 
+  cbind(newData)
+
+
+p1 <- fitToolModel %>% 
+  ggplot(aes(x = log_pop_std, group = contact, color = contact))+
+  geom_smooth(aes(y = Estimate, ymin = Q4.5, ymax = Q95.5, fill = contact),
+              stat = "identity", alpha = .25, linewidth = .5, show.legend = F) +
+  geom_point(data = cbind(tools, tools_11.2$criteria$loo$diagnostics),
+             aes(y = total_tools, size = pareto_k),
+             alpha = .8, show.legend = F) +
+  geom_text_repel(data = cbind(tools, tools_11.2$criteria$loo$diagnostics) %>% 
+                    filter(culture %in% cultures) %>% 
+                    mutate(label = str_c(culture, " (", round(pareto_k, digits = 2), ")")),
+                  aes(y = total_tools, label = label),
+                  size = 3, seed = 11, color = "black", family = "Times") + 
+  labs(x = "log standardized population", 
+       y = "Total Tools") +
+  coord_cartesian(xlim = range(tools_11.2$data$log_pop_std),
+                  ylim = c(0, 80))+
+  theme_minimal()
+
+p2 <- fitToolModel %>% 
+  mutate(population = exp((log_pop_std * sd(log(tools$population))) + mean(log(tools$population)))) %>% 
+  ggplot(aes(x = population, group = contact, color = contact)) +
+  geom_smooth(aes(y = Estimate, ymin = Q4.5, ymax = Q95.5, fill = contact),
+              stat = "identity", alpha = .25, linewidth = .5) +
+  geom_point(data = cbind(tools, tools_11.2$criteria$loo$diagnostics),
+             aes(y = total_tools, size = pareto_k),
+             alpha = .8, show.legend = F) +
+  geom_text_repel(data = cbind(tools, tools_11.2$criteria$loo$diagnostics) %>%
+                    filter(culture %in% cultures) %>%
+                    mutate(label = str_c(culture, " (", round(pareto_k, digits = 2), ")")),
+                  aes(y = total_tools, label = label),
+                  size = 3, seed = 11, color = "black", family = "Times")+
+  scale_x_continuous("population", breaks = c(0, 50000, 150000, 250000))+
+  labs(y = "") + 
+  theme_minimal() +
+  coord_cartesian(xlim = range(tools$population),
+                  ylim = c(0, 80))
+
+p1 | p2
+
+```
+
+Hawaii's high influence on the posterior makes sense given it's large population and it's large set of tools. This doesn't mean it's an outlier that needs to be dropped. 
+
+Look at the posterior predictions in our above figure. Notice that the trend for societies with high contact red is higher than the trend for societies with low contact blue with population size is low, but then the model allows it to actually be smaller. The means cross one another at high population sizes. Of course the model is actually saying it has no idea where the trend for high contact societies goes at high population sizes, because there are no high population size societies with high contact. There is only low-contact Hawaii. But it is still a silly pattern that we know shouldn’t happen. A counter-factual Hawaii with the same population size but high contact should theoretically have at least as many tools as the real Hawaii. It shouldn’t have fewer.
+
+The model can produce this silly pattern, because it lets the intercept be a free parameter. Why is this bad? Because it means there is no guarantee that the trend for $\lambda$ will pass through the origin where total tools equals zero and the population size equals zero. When there are zero people, there are also zero tools! As population increases, tools increase. So we get the intercept for free, if we stop and think.
+
+Let’s stop and think. Instead of the conventional GLM above, we could use the predictions of an actual model of the relationship between population size and tool kit complexity. By “actual model,” I mean a model constructed specifically from scientific knowledge and hypothetical causal effects. The downside of this is that it will feel less like statistics—suddenly domain-specific skills are relevant. The upside is that it will feel more like science.
+
+What we want is a dynamic model of the cultural evolution of tools. Tools aren’t created all at once. Instead they develop over time. Innovation processes at them to a population. Processes of loss remove them. These forces balance to produce tool kits of different sizes.
+
+The simplest model assumes that innovation is proportional to population size with some diminishing returns (an elasticity). It also assumes that tool loss is proportional to the number of tools, with no diminishing returns. 
+
+$$ \Delta \text{Number of Tools} = (\alpha \times \text{Population}^\beta)  - (\gamma \times \text{Number of Tools})$$
+Where $ \alpha, \ \beta, \  \gamma $ are parameters to be estimated. $\alpha$ is how innovation is proportional to population, $\beta$ represents the diminishing returns, and $\gamma$ is the tool loss proportional to the number of tools. 
+To find equilibrium we set $ \Delta \text{Number of Tools} = 0 $ and solve for Number of Tools. This yields:
+
+$$ \widehat{\text{Number of Tools}} = \frac{\alpha \times \text{Population}^\beta}{\gamma} $$
+
+We're still going to use this as our estimate of $\lambda$ inside a Poisson model, since the noise around the outcome is conservatively estimated with the maximum entropy distribution in this context - Poisson.
+
+$$ \text{Number of Tools}_i \sim \text{Poisson}(\lambda_i) $$
+
+$$\lambda_i = \frac{\alpha \times \text{Population}_i^\beta}{\gamma}$$
+
+Notice that there is no link function! All we have to do to ensure that $\lambda$ remains positive is to make  sure the parameters are positive. I'll use exponential priors for $\beta$ and $\gamma$ and a log-Normal for $\alpha$. Then they all have to be positive. In building the model we also want to allow some or all of the parameters to vary by contact rate. Since contact rate is suppose to mediate the influence of population size, let's allow $\alpha$ and $\beta$. It could also influence $\gamma$, because trade networks might prevent tools from vanishing over time.
+
+$$ \lambda_i = \frac{\text{exp}(\alpha) \times \text{Population}_i^\beta}{\gamma} $$
+$$ \alpha_\text{Contact Level [i]} \sim \text{Normal(1, 1)} $$
+
+$$ \beta_\text{Contact Level [i]} \sim \text{Exponential(1)} $$
+
+$$ \gamma \sim \text{Exponential(1)} $$
 
 
 
 ```{r}
-x <- rbeta(1e6, .5, .5)
-logit_x <- log(x/(1-x)) #exp(x)/(1+exp(x))
+tools_11.4 <- brm(
+  data = tools,
+  family = poisson(link = "identity"),
+  bf(total_tools ~ (exp(a) * (population ^ b)) / g,
+     a + b ~ 0 + contact,
+     g ~ 1, 
+     nl = TRUE),
+  prior = c(prior(normal(1, 1), nlpar = a),
+            prior(exponential(1), nlpar = b, lb = 0),
+            prior(exponential(1), nlpar = g, lb = 0)),
+  control = list(adapt_delta = 0.97, max_treedepth = 15),
+  iter = 2000, warmup = 1000, cores = 4, chains = 4, seed = 11,
+  file = "fits/tools_11.04.1", backend = "cmdstanr", silent = 2
+)
 
-my_data <- tibble(og = x, logOdds = logit_x,
-                  bell = rnorm(1e6, 0, 1.813))
-
-ggplot(data = my_data)+
-  geom_density(aes(x = logOdds), color = "red")+
-  geom_density(aes(x = bell), color = "black")
-  
-
-
-my_data2 <- tibble(logOdds1 = rnorm(1e6, 0, 10),
-                   prob1 = exp(logOdds1)/(1+exp(logOdds1)),
-                   logOdds2 = rnorm(1e6, 0, 1.5),
-                   prob2 = exp(logOdds2)/(1+exp(logOdds2)))
-
-ggplot(data = my_data2)+
-  geom_density(aes(x = prob1), color = "black")+
-  geom_density(aes(x = prob2), color = "red")
-
-
-my_data3 <- tibble(prob = runif(1e6, min = 0, max = 1),
-                   logOdds = log(prob/(1-prob)),
-                   bell = rnorm(1e6, 0, sd = 1.81))
-
-ggplot(data = my_data3)+
-  geom_density(aes(x = logOdds), color = "black")+
-  geom_density(aes(x = bell), color = "red")
-
-
-a <- rnorm(1e6, 0, 1.5)
-
-my_data4 <- tibble(logOdds1A = a + rnorm(1e6, 0, 10),
-                   prob1A = exp(logOdds1A)/(1+exp(logOdds1A)),
-                   logOdds1B = a + rnorm(1e6, 0, 10),
-                   prob1B = exp(logOdds1B)/(1+exp(logOdds1B)),
-                   diff1 = abs(prob1A - prob1B),
-                   
-                   logOdds2A = a + rnorm(1e6, 0, .5),
-                   prob2A = exp(logOdds2A)/(1+exp(logOdds2A)),
-                   logOdds2B = a + rnorm(1e6, 0, .5),
-                   prob2B = exp(logOdds2B)/(1+exp(logOdds2B)),
-                   diff2 = abs(prob2A - prob2B))
-
-ggplot(data = my_data4)+
-  geom_density(aes(x = diff1), color = "black")+
-  geom_density(aes(x = diff2), color = "red")
-
-
-ggplot(data = tibble(x = rexp(1e6, rate = 3)), aes(x = x))+
-  geom_density()
-
+tools_11.4 <- add_criterion(tools_11.4, criterion = "loo", moment_match = T)
+loo(tools_11.4)
 ```
 
+Again with the small dataset we'll have Pareto high $k$ values. If we double check it's the same suspects (Hawaii, Trobriand, Tonga) that are having an outsized impact on the posterior
+
+```{r}
+cbind(tools, tools_11.4$criteria$loo$diagnostics) %>%
+  mutate(pareto_k = round(pareto_k, 2)) %>% 
+  dplyr::select(c(culture, pareto_k)) %>% 
+  arrange(desc(pareto_k)) %>% 
+  pivot_wider(names_from = "culture", values_from = "pareto_k")
+```
+
+
+
+```{r}
+#| fig-height: 3
+#| fig-width: 6
+
+# for the annotation
+text <- distinct(tools, contact) %>% 
+  mutate(population = c(210000, 45000),
+         total_tools = c(59, 74),
+         label = str_c(contact, " contact"))
+
+newData <- distinct(tools, contact) %>% 
+  expand_grid(population = seq(from = 0, to = 300000, length.out = 100))
+
+fitted(tools_11.4, 
+        newdata = newData,
+        probs = c(0.045, 0.955)) %>% 
+  data.frame() %>% 
+  bind_cols(newData) %>%
+  ggplot(aes(x = population, color = contact, group = contact)) +
+  geom_smooth(aes(y = Estimate, ymin = Q4.5, ymax = Q95.5, fill = contact),
+               stat = "identity", lwd = .7, alpha = .3, show.legend = F) +
+  geom_point(data = cbind(tools, tools_11.4$criteria$loo$diagnostics), aes(y = total_tools, size = pareto_k),
+             show.legend = F)+
+  geom_text(data = text,
+            aes(y = total_tools, label = label),
+            family = "serif", show.legend = F) +
+  coord_cartesian(xlim = range(tools$population),
+                  ylim = c(0, 80))+
+  theme_minimal()+
+  scale_x_continuous("population", breaks = c(0, 50000, 150000, 250000))+
+  labs(y = "Total Tools")
+  
+```
+
+This new scientific model does do better on our model metrics. Having a few points lower on WAIC or PSIS and having better pareto $k$ values.
+
+```{r}
+loo_compare(tools_11.2, tools_11.4, criterion = "loo") %>% print(simplify = F)
+```
+
+
+### Negative Binomial (gamma-Poisson) models
