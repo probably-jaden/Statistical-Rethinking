@@ -830,7 +830,7 @@ tools_11.3 <- brm(
 #| fig-width: 8
 #| fig-height: 3
 
-predict(tools_ll.1) %>% 
+predict(tools_11.1) %>% 
   cbind(tools) %>% 
   ggplot(aes(x = culture)) +
   geom_pointrange(aes(y = Estimate, ymin = `Q2.5`, ymax = `Q97.5`), color = "skyblue2", alpha = .5, lwd = 1.5)+
@@ -856,10 +856,10 @@ predict(tools_11.2) %>%
 The intercept alone model looks clearly inferior to our "Contact + Population" model, but let's check with LOO to make sure we aren't overfitting.
 
 ```{r}
-tools_ll.1  <- add_criterion(tools_ll.1, "loo")
+tools_11.1  <- add_criterion(tools_11.1, "loo")
 tools_11.2 <- add_criterion(tools_11.2, "loo")
 
-loo_compare(tools_ll.1, tools_11.2, criterion = "loo") %>% print(simplify = F)
+loo_compare(tools_11.1, tools_11.2, criterion = "loo") %>% print(simplify = F)
 ```
 
 When we generate these LOO comparsions we get some warnings about the Pareto $k$ values. Let's get a closer inspection.
