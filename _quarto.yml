@@ -15,7 +15,10 @@ website:
         text: Model Metrics
       - href: ch8_conditional.qmd
         text: Interactions
-        
+      - href: ch11_integerGLM.qmd
+        text: Integer Models
+      - href: ch16_GLMs.qmd
+        text: GLMs
 format:
   html:
     theme: cosmo

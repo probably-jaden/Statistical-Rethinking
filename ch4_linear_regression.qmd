@@ -10,9 +10,9 @@ execute:
   cache.lazy: false
 ---
 
-## 4.3.1 First Model 
+## Learning X from Y
 
-!khun
+
 
 ```{r load packages and data}
 library(rethinking)
@@ -35,7 +35,8 @@ setwd("~/Documents/Intellectual Fun/statisticalRethinking/statisticalRethinking"
 
 ```
 
-## EDA !Kung Height ~ Weight + Gender
+## EDA !Kung Height \~ Weight + Gender
+
 ```{r}
 kHeight_adult <- kHeight %>%
   filter(age >= 18)
@@ -64,7 +65,8 @@ ggplot(data = kHeight_child, aes(x = weight, y = height, color = as.factor(male)
   
 ```
 
-### Plotting the Prior 
+### Plotting the Prior
+
 ```{r Priors for Kung! height}
 
 # mean prior
@@ -151,8 +153,7 @@ ggplot(d_grid) +
 
 ```
 
-
-### Sample from the Posterior 
+### Sample from the Posterior
 
 ```{r}
 d_grid_samples <- 
@@ -339,6 +340,7 @@ ggplot(data = kHeight,
 ```
 
 ### polynomial (Cubic) model !Kung height
+
 ```{r Model polynomial kung height}
 b4.6 <- 
   brm(data = kHeight, 
@@ -381,6 +383,7 @@ p <-
 ```
 
 ### plot Polynomial (Cubic) !Kung height
+
 ```{r plot height cubic polynomial}
 
 at <- c(-2, -1, 0, 1, 2)
@@ -416,7 +419,8 @@ ggplot(data = cherry, aes(x = year, y = temp))+geom_line()+labs(title = "Cherry 
   
 
 ```
-### Spline Model Cherry Blossom   
+
+### Spline Model Cherry Blossom
 
 ```{r Model Creation cherry}
 cherry2 <- cherry %>% 
@@ -522,7 +526,7 @@ pred_temp_4.1 <-
 
 ```
 
-###  Plots Cherry Blossom
+### Plots Cherry Blossom
 
 ```{r Visuals cherry}
 cherry2 %>%
@@ -563,6 +567,7 @@ cherry2 %>%
 # Hard Questions
 
 ### 4H1
+
 The weights listed below were recorded in the !Kung census,but heights were not recorded for these individuals. Provide predicted heights and 89% intervals for each of these individuals. That is, fill in the table below, using model-based predictions.
 
 ```{r}
@@ -626,4 +631,3 @@ ggplot()+
 
 
 ```
-

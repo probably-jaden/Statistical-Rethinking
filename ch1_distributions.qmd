@@ -1,0 +1,826 @@
+---
+title: "Distributions Everywhere"
+editor: visual
+execute:
+  echo: false
+  warning: false
+  message: false
+  freeze: auto
+  fig-align: center
+format:
+  html:
+    fig-cap-location: bottom
+    css: styles.css
+---
+
+```{r}
+library(tidyverse)
+library(patchwork)
+
+set.seed(10)
+
+inches_to_feet <- function(inches, round_num = 0){
+  feet <- inches %/% 12
+  inches_remaining <- round(inches %% 12, round_num)
+  return((paste0(feet, "'", inches_remaining, '"')))
+}
+
+get_mode <- function(x) {
+  uniq <- unique(x)
+  uniq[which.max(tabulate(match(x, uniq)))]
+}
+
+n_samples <- 20 
+```
+
+
+```{r}
+simulate_war <- function(num_soldiers = 500, 
+                         chinese_reserve = 0, french_reserve = 0,
+                         french_height_diff = -1, prob_delta_from_height = 0.01){
+  
+  battle_results <- tibble(chinese = num_soldiers, 
+                         french = num_soldiers,
+                         battle = 0, 
+                         chinese_reserve = chinese_reserve,
+                         french_reserve = french_reserve)
+  battle_num <- 1
+  
+  while (TRUE) {
+    # cat("\n=== Battle", battle_num, "===\n")
+    # cat("Fighting:", num_soldiers, "per side\n")
+    # cat("Reserves - Chinese:", chinese_reserve, "French:", french_reserve, "\n")
+    
+    # Determine how many soldiers fight this round
+    # chinese_fighting <- num_soldiers
+    # french_fighting <- num_soldiers
+    
+    # If no soldiers fighting but reserves exist, we need to deploy
+    if (num_soldiers == 0) {
+      if (chinese_reserve == 0 && french_reserve == 0) {
+        #cat("Both sides eliminated!\n")
+        break
+      }
+      
+      # Deploy equal numbers from each side (up to what each has)
+      deploy <- min(chinese_reserve, french_reserve)
+      
+      # If one side has no reserves, the other side wins
+      if (deploy == 0) {
+        #cat("One side has no reserves left - war over!\n")
+        break
+      }
+      
+      num_soldiers <- deploy
+      chinese_reserve <- chinese_reserve - deploy
+      french_reserve <- french_reserve - deploy
+      #cat("Deploying from reserves:", deploy, "per side\n")
+    }
+    
+    # Play the battle
+    height_soldier <- tibble(chinese = rnorm(num_soldiers, 
+                                             65, 2.4),
+                             french = rnorm(num_soldiers, 
+                                            65 + french_height_diff, 2.4)) %>% 
+      mutate(diff = french - chinese,
+             prob_french_win = 0.5 + (diff * prob_delta_from_height),
+             french_win = rbinom(n(), 1, prob_french_win)) 
+    
+    battle <- height_soldier %>% 
+      pivot_longer(cols = c(chinese, french),
+                   names_to = "nationality",
+                   values_to = "height") %>% 
+      mutate(winner = ifelse((nationality == "french" & french_win == 1) | 
+                             (nationality == "chinese" & french_win == 0), TRUE, FALSE)) %>% 
+      filter(winner == TRUE)
+    
+    # Count survivors (with explicit 0s for missing nationalities)
+    battle_stats <- battle %>% 
+      group_by(nationality) %>% 
+      summarize(count = n(), .groups = "drop") %>% 
+      pivot_wider(names_from = nationality,
+                  values_from = count,
+                  values_fill = 0)
+    
+    # Ensure columns exist even if empty
+    if (!"chinese" %in% names(battle_stats)) battle_stats$chinese <- 0
+    if (!"french" %in% names(battle_stats)) battle_stats$french <- 0
+    
+    chinese_survivors <- battle_stats$chinese
+    french_survivors <- battle_stats$french
+    
+    # cat("Survivors - Chinese:", chinese_survivors, "French:", french_survivors, "\n")
+    
+    # Add reserves and store results
+    battle_stats <- battle_stats %>% 
+      mutate(battle = battle_num,
+             chinese_reserve = chinese_reserve,
+             french_reserve = french_reserve)
+    
+    battle_results <- bind_rows(battle_results, battle_stats)
+    
+    # Determine next round's fighters
+    if (chinese_survivors > french_survivors) {
+      chinese_reserve <- chinese_reserve + (chinese_survivors - french_survivors)
+      num_soldiers <- french_survivors
+    } else if (french_survivors > chinese_survivors) {
+      french_reserve <- french_reserve + (french_survivors - chinese_survivors)
+      num_soldiers <- chinese_survivors
+    } else {
+      num_soldiers <- chinese_survivors
+    }
+    
+    # cat("After reserve update - num_soldiers:", num_soldiers, 
+    #   "Chinese reserve:", chinese_reserve, "French reserve:", french_reserve, "\n")
+
+    
+    battle_num <- battle_num + 1
+  }
+  
+  # cat("\n=== FINAL STATE ===\n")
+  # cat("Chinese reserve:", chinese_reserve, "\n")
+  # cat("French reserve:", french_reserve, "\n")
+  
+  
+  clean_battle_results <- battle_results %>% 
+    mutate(chinese = ifelse(is.na(chinese), 0, chinese + chinese_reserve),
+           french = ifelse(is.na(french), 0, french + french_reserve),
+           chinese_prop = chinese/(chinese + french),
+           french_prop = french/(chinese + french)) %>% 
+    dplyr::select(-c(french_reserve, chinese_reserve, chinese, french)) #%>% 
+    # pivot_longer(cols = c(chinese_prop, french_prop),
+    #              names_to = "nationality",
+    #              values_to = "soldiers")
+    
+  
+  # plot_war <- ggplot(data = clean_battle_results, aes(x = battle, y = soldiers, color = nationality)) +
+  #   geom_line(lwd = 1.5, alpha = .7)+
+  #   theme_minimal()+
+  #   scale_color_manual(values = c("coral", "aquamarine2"),
+  #                      labels = c("Chinese", "French"), name = "Army")+
+  #   labs(x = "Battle", y = "% of Total Soldiers Alive")+
+  #   scale_x_continuous(breaks = scales::breaks_width(1))
+  
+  return(clean_battle_results)
+}
+```
+
+```{r}
+simulate_war2 <- function(num_soldiers = 500, 
+                         chinese_reserve = 0, french_reserve = 0,
+                         french_height_diff = -1, prob_delta_from_height = 0.01){
+  
+  battle_results <- tibble(chinese = num_soldiers, 
+                         french = num_soldiers,
+                         battle = 0, 
+                         chinese_reserve = chinese_reserve,
+                         french_reserve = french_reserve)
+  battle_num <- 1
+  
+  while (TRUE) {
+    # cat("\n=== Battle", battle_num, "===\n")
+    # cat("Fighting:", num_soldiers, "per side\n")
+    # cat("Reserves - Chinese:", chinese_reserve, "French:", french_reserve, "\n")
+    
+    # Determine how many soldiers fight this round
+    # chinese_fighting <- num_soldiers
+    # french_fighting <- num_soldiers
+    
+    # If no soldiers fighting but reserves exist, we need to deploy
+    if (num_soldiers == 0) {
+      if (chinese_reserve == 0 && french_reserve == 0) {
+        #cat("Both sides eliminated!\n")
+        break
+      }
+      
+      # Deploy equal numbers from each side (up to what each has)
+      deploy <- min(chinese_reserve, french_reserve)
+      
+      # If one side has no reserves, the other side wins
+      if (deploy == 0) {
+        #cat("One side has no reserves left - war over!\n")
+        break
+      }
+      
+      num_soldiers <- deploy
+      chinese_reserve <- chinese_reserve - deploy
+      french_reserve <- french_reserve - deploy
+      #cat("Deploying from reserves:", deploy, "per side\n")
+    }
+    
+    # Play the battle
+    height_soldier <- tibble(chinese = rnorm(num_soldiers, 
+                                             65, 2.4),
+                             french = rnorm(num_soldiers, 
+                                            65 + french_height_diff, 2.4)) %>% 
+      rbind()
+      mutate(diff = french - chinese,
+             prob_french_win = 0.5 + (diff * prob_delta_from_height),
+             french_win = rbinom(n(), 1, prob_french_win)) 
+    
+    battle <- height_soldier %>% 
+      pivot_longer(cols = c(chinese, french),
+                   names_to = "nationality",
+                   values_to = "height") %>% 
+      mutate(winner = ifelse((nationality == "french" & french_win == 1) | 
+                             (nationality == "chinese" & french_win == 0), TRUE, FALSE)) %>% 
+      filter(winner == TRUE)
+    
+    # Count survivors (with explicit 0s for missing nationalities)
+    battle_stats <- battle %>% 
+      group_by(nationality) %>% 
+      summarize(count = n(), .groups = "drop") %>% 
+      pivot_wider(names_from = nationality,
+                  values_from = count,
+                  values_fill = 0)
+    
+    # Ensure columns exist even if empty
+    if (!"chinese" %in% names(battle_stats)) battle_stats$chinese <- 0
+    if (!"french" %in% names(battle_stats)) battle_stats$french <- 0
+    
+    chinese_survivors <- battle_stats$chinese
+    french_survivors <- battle_stats$french
+    
+    # cat("Survivors - Chinese:", chinese_survivors, "French:", french_survivors, "\n")
+    
+    # Add reserves and store results
+    battle_stats <- battle_stats %>% 
+      mutate(battle = battle_num,
+             chinese_reserve = chinese_reserve,
+             french_reserve = french_reserve)
+    
+    battle_results <- bind_rows(battle_results, battle_stats)
+    
+    # Determine next round's fighters
+    if (chinese_survivors > french_survivors) {
+      chinese_reserve <- chinese_reserve + (chinese_survivors - french_survivors)
+      num_soldiers <- french_survivors
+    } else if (french_survivors > chinese_survivors) {
+      french_reserve <- french_reserve + (french_survivors - chinese_survivors)
+      num_soldiers <- chinese_survivors
+    } else {
+      num_soldiers <- chinese_survivors
+    }
+    
+    # cat("After reserve update - num_soldiers:", num_soldiers, 
+    #   "Chinese reserve:", chinese_reserve, "French reserve:", french_reserve, "\n")
+
+    
+    battle_num <- battle_num + 1
+  }
+  
+  # cat("\n=== FINAL STATE ===\n")
+  # cat("Chinese reserve:", chinese_reserve, "\n")
+  # cat("French reserve:", french_reserve, "\n")
+  
+  
+  clean_battle_results <- battle_results %>% 
+    mutate(chinese = ifelse(is.na(chinese), 0, chinese + chinese_reserve),
+           french = ifelse(is.na(french), 0, french + french_reserve),
+           chinese_prop = chinese/(chinese + french),
+           french_prop = french/(chinese + french)) %>% 
+    dplyr::select(-c(french_reserve, chinese_reserve, chinese, french)) #%>% 
+    # pivot_longer(cols = c(chinese_prop, french_prop),
+    #              names_to = "nationality",
+    #              values_to = "soldiers")
+    
+  
+  # plot_war <- ggplot(data = clean_battle_results, aes(x = battle, y = soldiers, color = nationality)) +
+  #   geom_line(lwd = 1.5, alpha = .7)+
+  #   theme_minimal()+
+  #   scale_color_manual(values = c("coral", "aquamarine2"),
+  #                      labels = c("Chinese", "French"), name = "Army")+
+  #   labs(x = "Battle", y = "% of Total Soldiers Alive")+
+  #   scale_x_continuous(breaks = scales::breaks_width(1))
+  
+  return(clean_battle_results)
+}
+```
+
+
+## The Statisticians Journey
+
+Imagine you're living in the 1600s as a scholar for [King Louie the XIV](https://vimeo.com/474721407). The King has heard from some that the Chinese are giants and from other conflicting reports that they are actually in fact midgets. He gives you a simple scholarly mission; figure out which report is true. If they're giants your king wants to know how big of giants they are, if they're midgets figure out how small of midgets they are.
+
+```{r}
+#| fig-cap: "A depiction of cyclops from a Marco Polo account of India. But you get the idea just prentend these are Chinese giants."
+#| fig-align: center
+#| out-width: 60%
+
+knitr::include_graphics("plots/marcoPolo.jpg")
+```
+
+
+<br>
+
+After months of voyaging you finally arrive in China and your hopes of easily settling the question are instantly dashed. Some of the Chinese you see are taller than you and some are shorter than you. They're are not all taller than everyone in your crew nor are they shorter than everyone in your crew.
+
+<br>
+
+```{r}
+#| fig-cap: "A depiction of a British embassy to China a hundred years later. But you get the idea just prentend these are French visitors from the 1600s."
+#| fig-align: center
+#| out-width: 60%
+
+knitr::include_graphics("plots/chineseCourt.webp")
+```
+
+
+<br>
+
+### Measuring
+
+You decide to go out and measure the heights of some Ming dynasty males anyways. At this point let's imagine two different scenarios:
+
+(1) `r n_samples` Chinese males are measured
+
+*(2) in universe 2 you measure every last Chinese male.*
+
+<br>
+
+You now have a long list of all the heights (inches):
+
+```{r}
+
+
+height <- tibble(chinese = rnorm(n_samples, 65, 2.4),
+                 french = rnorm(n_samples, 64, 2.4)) %>% 
+  mutate(diff = french - chinese)
+  
+
+
+height_all <- tibble(chinese = rnorm(1e6, 65, 2.4),
+                 french = rnorm(1e6, 64, 2.4)) %>% 
+  mutate(diff = french - chinese)
+
+cat(inches_to_feet(round(height$chinese)))
+
+```
+
+<br>
+
+It would be much easier to read what's going on if we put all that data into a histogram. Here's our two histograms of our two parallel universes, left - `r n_samples` sampled Chinese men, right - every Chinese man.
+
+```{r}
+#| fig-width: 8
+#| fig-height: 3
+#| fig-align: center
+
+chinese_100 <- ggplot(data = height)+
+  geom_histogram(aes(x = chinese), fill = "goldenrod", binwidth = 1)+
+  scale_x_continuous(breaks = c(60, 64, 68, 72), labels = c("5'0\"", "5'4\"", "5'8\"", "6'0\""), limits = c(55, 75)) + 
+  theme_minimal()+
+  labs(x = "Height", title = "50 Sampled Chinese Male Heights")
+
+chinese_all <- ggplot(data = height_all)+
+  geom_histogram(aes(x = chinese), fill = "skyblue3", binwidth = 1)+
+  scale_x_continuous(breaks = c(60, 64, 68, 72), labels = c("5'0\"", "5'4\"", "5'8\"", "6'0\""), limits = c(55, 75))+
+  theme_minimal()+
+  labs(x = "Height", title = "All Chinese Males Heights")
+
+chinese_100 + chinese_all
+```
+
+<br>
+
+### Reporting
+
+```{r}
+low_100 <- inches_to_feet(round(min(height$chinese)))
+high_100 <- inches_to_feet(round(max(height$chinese)))
+
+low_all <- inches_to_feet(round(min(height_all$chinese)))
+high_all <- inches_to_feet(round(max(height_all$chinese)))
+```
+
+How will we report these results to the king? We can give him the tallest height and shortest height.
+
+::: {style="width: 40%; margin: auto;"}
+|                       |    shortest |      tallest |
+|-----------------------|------------:|-------------:|
+| `r n_samples` samples | `r low_100` | `r high_100` |
+| All Chinese Men       | `r low_all` | `r high_all` |
+:::
+
+While these are nice clear answers that are unambiguous to interpret, they aren't very representative. The shortest man and the tallest man are outliers. They are exceptional; most Chinese men are not like them at all. Additionally it's a bit concerning that our two different parallel universes (`r n_samples` samples vs all Chinese men) give very different results.
+
+Alternatively we could report: the most common height (mode), the middle height (median), or the average height (mean).
+
+```{r}
+mode_100 <- get_mode(inches_to_feet(round(height$chinese)))
+mode_all <- get_mode(inches_to_feet(round(height_all$chinese)))
+
+median_100 <- inches_to_feet(round(median(height$chinese)))
+median_all <- inches_to_feet(round(median(height_all$chinese)))
+
+mean_100 <- inches_to_feet(round(mean(height$chinese)))
+mean_all <- inches_to_feet(round(mean(height_all$chinese)))
+```
+
+
+::: {style="width: 40%; margin: auto;"}
+|                       |         Mode |         Median |         Mean |
+|-----------------------|-------------:|---------------:|-------------:|
+| `r n_samples` samples | `r mode_100` | `r median_100` | `r mean_100` |
+| All Chinese Men       | `r mode_all` | `r median_all` | `r mean_all` |
+:::
+
+These appear to all give the same answer. Remember we're rounding heights to the nearest inch so it's an illusion that these return the exact same answer. Statisticians almost never use the mode and typically prefer the mean over the median. But why? Means are fantastic for inference! But we'll cover that in just a bit.
+
+<br>
+
+### Modeling
+
+While you've successfully proven that King Louie IV fears of Giants are unfounded, some concerns remain. The french general who accompanied your voyage says that a couple of inches in height plays a large role in determining which soldier might win in a 1 v 1 brawl. We are now concerned with the height differences between your French soldiers and Chinese soldiers.
+
+But we don't know which French man will face off with which Chinese man. Surely it's a hopeless cause to figure out who has the height advantage then? It's not a hopeless cause. There are some silly strategies where we could compare the tallest Chinese man to the tallest French man and then the 2nd tallest Chinese man to the 2nd tallest French man all the way down to the shortest of both groups. But real battles don't have soldiers lining up from tallest to shortest facing off with their equal. It's more like a random mess, with soldiers arranging themselves in no particular height order.
+
+This has upsides and it has downsides. The upside is that we don't have to worry about calculating things we can't know. We don't know the order of soldiers so we don't need to make that a part of our calculations, our job is easier in a sense. The downside is that our answer is going to be less precise than if we did know the exact line up.
+
+To begin lets start with measuring the heights of our French men. Again we'll play in two different universes 1) where we measure both `r n_samples` men and 2) where we measure all the French men. And then we'll randomly match up pairs of Chinese and French men and compare their heights. If the Chinese man is two inches taller we'll record that as **-2**, if the French man is 2 inches taller we'll record that as **+2**.
+
+**`r n_samples` Samples**
+
+```{r}
+#| fig-width: 8
+#| fig-height: 3
+#| fig-align: center
+
+chinese_100 <- chinese_100 + labs(x = "Height", title = "Chinese")
+
+french_100 <- ggplot(data = height)+
+  geom_histogram(aes(x = french), fill = "orange2", binwidth = 1)+
+  theme_minimal()+
+  scale_x_continuous(breaks = c(60, 64, 68, 72), labels = c("5'0\"", "5'4\"", "5'8\"", "6'0\""), limits = c(55, 75))+
+  labs(x = "Height", title = "French")
+
+diff_100 <- ggplot(data = height)+
+  geom_histogram(aes(x = diff), fill = "goldenrod4", binwidth = 1)+
+  theme_minimal()+
+  labs(x = "Difference (inches)", title = "Difference")
+
+
+(chinese_100 + french_100 + diff_100) 
+
+mean_n_chinese <- inches_to_feet(round(mean(height$chinese)))
+mean_n_french <- inches_to_feet(round(mean(height$french)))
+mean_n_diff <- round(mean(height$diff), 2)
+
+mean_all_chinese <- inches_to_feet(round(mean(height_all$chinese)))
+mean_all_french <- inches_to_feet(round(mean(height_all$french)))
+mean_all_diff <- round(mean(height_all$diff), 2)
+
+
+```
+
+**Entire Population**
+
+```{r}
+#| fig-width: 8
+#| fig-height: 3
+#| fig-align: center
+
+
+chinese_all <- chinese_all + labs(x = "Height", title = "Chinese") 
+
+french_all <- ggplot(data = height_all)+
+  geom_histogram(aes(x = french), fill = "skyblue", binwidth = 1)+
+  theme_minimal()+
+  scale_x_continuous(breaks = c(60, 64, 68, 72), labels = c("5'0\"", "5'4\"", "5'8\"", "6'0\""), limits = c(55, 75))+
+  labs(x = "Height", title = "French")
+
+diff_all <- ggplot(data = height_all)+
+  geom_histogram(aes(x = diff), fill = "blue3", binwidth = 1)+
+  theme_minimal()+
+  labs(x = "Difference (inches)", title = "Difference")
+
+chinese_all + french_all + diff_all
+```
+
+Looking at the entire population we can see that the Chinese are on average taller than the French. The average of that difference distribution is `r round(mean(height_all$diff), 2)` inches, that is that the Chinese are on average two inches taller than the French.
+
+```{r}
+xbar_chinese <- inches_to_feet(round(mean(height$chinese)))
+xbar_french  <- inches_to_feet(round(mean(height$french)))
+xbar_diff <- round(mean(height$diff), 2)
+
+mu_chinese <- inches_to_feet(round(mean(height_all$chinese)))
+mu_french  <- inches_to_feet(round(mean(height_all$french)))
+mu_diff <- round(mean(height_all$diff), 2)
+```
+
+
+::: {style="width: 70%; margin: auto;"}
+|   | Avg Chinese | Avg French | Avg Difference (inches) |
+|---------------|-------------:|-----------:|---------------:|
+| `r n_samples` samples | `r xbar_chinese` | `r xbar_french` | `r round(mean(height$diff), 2)` |
+| Entire Population | `r mu_chinese` | `r mu_french` | `r mu_diff` |
+:::
+
+A 1 inch average difference might seem small, but let's take the generals word that every inch in differences increase the probability that the taller soldier will prevail in  1 vs 1 combat. Let's simplify and say that if the Chinese and French soldier have equal height it's a coin flip who will win. But with every additional inch over your opponent you gain a 1% increase in the chance that you'll beat them. 
+
+```{r}
+num_soldiers <- 10000
+```
+
+
+Let's simulate a large battle of 10,000 soldiers on either side.
+
+```{r}
+height_soldier <- tibble(chinese = rnorm(num_soldiers, 65, 2.4),
+                         french = rnorm(num_soldiers, 64, 2.4)) %>% 
+  mutate(diff = french - chinese,
+         prob_french_win = 0.5 + (diff * .01),
+         french_win = rbinom(n(), 1, prob_french_win)) 
+
+battle_1 <- height_soldier %>% 
+  pivot_longer(cols = c(chinese, french),
+               names_to = "nationality",
+               values_to = "height") %>% 
+  mutate(winner = ifelse((nationality == "french" & french_win == 1) | (nationality == "chinese" & french_win == 0), TRUE, FALSE)) %>% 
+  filter(winner == TRUE)
+
+battle_1_stats <- battle_1 %>% 
+  group_by(nationality) %>% 
+  summarize(count = n()) %>% 
+  pivot_wider(names_from = nationality,
+              values_from = count)
+
+#battle_1_stats
+```
+
+
+::: {style="width: 40%; margin: auto;"}
+| | Chinese | French | 
+|---|----:|-----:|
+|Surviving Soldiers | `r battle_1_stats$chinese` | `r battle_1_stats$french` | 
+:::
+
+With an average height difference of only 1 inch the Chinese Army was able to have `r battle_1_stats$chinese - battle_1_stats$french` more soldiers survive the battle. This may not seem like a critical difference especially when we started off with 20,000 soldiers in total. But imagine that instead of a single battle the Chinese and French armies are engaged in a war with a long series of battles. If a soldier survives a battle they can go on to fight another day. 
+
+Below a couple of these Wars are simulated. To "win" a war an army would have 100% of the surviving soldiers. 
+
+```{r}
+#| fig-width: 6
+#| fig-height: 3
+#| fig-align: center
+
+
+sim_wars <- tibble()
+
+for(i in 1:30){
+  war_i <- simulate_war(num_soldiers = 5000, 
+             french_height_diff = -1,
+             prob_delta_from_height = 0.01) %>% 
+    mutate(war_num = i)
+  
+  sim_wars <- rbind(sim_wars, war_i)
+}
+
+sim_wars_long <- sim_wars %>%
+  pivot_longer(
+    cols = c(chinese_prop, french_prop),
+    names_to = "Army",
+    values_to = "proportion"
+  )
+
+# Create the plot
+ggplot(sim_wars_long, aes(x = battle, y = proportion, color = Army, group = interaction(war_num, Army))) +
+  geom_line(alpha = .4, lwd = 1.2) +
+  scale_color_manual(
+    values = c("chinese_prop" = "coral", "french_prop" = "aquamarine3"),
+    labels = c("Chinese", "French")
+  ) +
+  labs(
+    x = "Battle Number",
+    y = "% of Remaining Solidiers Alive",
+    color = "Army"
+  ) +
+  theme_minimal()
+```
+
+While it's not guaranteed that the Chinese always win each war, they win in the vast majority of our simulations.
+
+Clearly a difference in 1 inch average height is crucial. We go back to the King Louie with our grave news, though the Chinese aren't Giants they are on average 1 inch taller than his men. The king's confused with your comical prophecy of doom, but you patiently explain that if soldiers are randomly picked to fight Chinese soldiers he will lose any large-scale war. 
+
+<br>
+
+### Intervening
+
+
+```{r}
+potsdam_giants <- tibble(french = rnorm(30000, 64, 2.4)) %>% 
+  rbind(tibble(french = 74 + rgamma(3500, 4, 1))) %>% 
+  cbind(tibble(chinese = rnorm(33500, 65, 2.4)))
+
+
+# potsdam_giants %>% 
+#   pivot_longer(cols = everything(),
+#                names_to = "army",
+#                values_to = "soldiers")
+
+```
+
+
+
+
+The King is upset with these dooming war simulations and demands you come up with a solution. It all of a sudden strikes you, the Prussian King has just coalesced a special regiment of [giants](https://en.wikipedia.org/wiki/Potsdam_Giants). 
+
+
+
+```{r}
+#| label: fig-potsdam
+#| fig-cap: "Your caption text here"
+#| fig-align: center
+#| out-width: 60%
+
+knitr::include_graphics("plots/potsdam.webp")
+```
+
+
+
+
+Soldiers joining this regiment were required to be taller than 6'2". As you can imagine it was difficult to find and recruit such tall men, so they are relatively few in number ~3,500. If they are combined with one of the normal french armies of 30,000 men they might just be able to tip the scales of a war, or so we hope.
+
+<br>
+
+```{r}
+#| fig-width: 8
+#| fig-height: 3
+#| fig-align: center
+
+potsdam_all <- ggplot(data = potsdam_giants)+
+  geom_histogram(aes(x = french), fill = "orange", binwidth = 1)+
+  theme_minimal()+
+  geom_vline(aes(xintercept = mean(french), color = "Mean"), 
+             linetype = "dashed", lwd = 1)+
+  geom_vline(aes(xintercept = median(french), color = "Median"), 
+             linetype = "dashed", lwd = 1)+
+  scale_color_manual(name = "Statistics",
+                     values = c("Mean" = "blue", "Median" = "purple"))+
+  scale_x_continuous(breaks = c(60, 64, 68, 72, 78, 84), labels = c("5'0\"", "5'4\"", "5'8\"", "6'0\"", "6'6\"", "7'0\""), limits = c(55, 85))+
+  labs(x = "Height", title = "French Army + Potsdam Giants Regiment", caption = "Dashed line = Average Height")
+
+potsdam_all
+
+median_potsdam <- inches_to_feet(round(median(potsdam_giants$french)))
+mean_potsdam <- inches_to_feet(round(mean(potsdam_giants$french)))
+mode_potsdam <- get_mode(inches_to_feet(round(potsdam_giants$french)))
+
+```
+
+<br>
+
+Critically our other measurement types the mode (most common height) and median (middle height, 50% mark) haven't moved at all. They are totally agnostic to the idea that adding the Potsdam Giants regiment will somehow improve our odds if we go to war with the Chinese. The mean on the other hand is affected! It tell us the Giants have increased our armies average height be
+
+<br>
+
+::: {style="width: 40%; margin: auto;"}
+|                       |         Mode |         Median |         Mean |
+|-----------------------|-------------:|---------------:|-------------:|
+| French Men      | `r mode_potsdam` | `r median_potsdam` | `r mean_potsdam` |
+:::
+
+<br>
+
+
+
+When we run the same simulation of randomly matching up Chinese soldiers and your new army, the French finally have a fighting chance of winning a war.
+
+```{r}
+#| fig-width: 6
+#| fig-height: 3
+#| fig-align: center
+
+sim_wars2 <- tibble()
+
+for(i in 1:30){
+  war_i <- simulate_war(num_soldiers = 5000, 
+             french_height_diff = 0.2,
+             prob_delta_from_height = 0.01) %>% 
+    mutate(war_num = i)
+  
+  sim_wars2 <- rbind(sim_wars2, war_i)
+}
+
+sim_wars_long2 <- sim_wars2 %>%
+  pivot_longer(
+    cols = c(chinese_prop, french_prop),
+    names_to = "Army",
+    values_to = "proportion"
+  )
+
+# Create the plot
+ggplot(sim_wars_long2, aes(x = battle, y = proportion, color = Army, group = interaction(war_num, Army))) +
+  geom_line(alpha = .4, lwd = 1.2) +
+  scale_color_manual(
+    values = c("chinese_prop" = "coral", "french_prop" = "aquamarine3"),
+    labels = c("Chinese", "French + Potsdam Giants")
+  ) +
+  labs(
+    x = "Battle Number",
+    y = "% of Remaining Solidiers Alive",
+    color = "Army"
+  ) +
+  theme_minimal()
+```
+
+
+If you could double the amount of Potsdam Giants and get your average soldier height up to 5'6" the Chinese armies would now almost always lose. A complete reversal of circumstances. 
+
+<br>
+
+### Inferring
+
+So far we have accomplished some critical tasks, we showed our king:
+
+1) French soldiers were on average shorter than Chinese soldiers
+2) this would lead to calamity in war
+3) a solution to this problem by making the average French soldier taller.
+
+Critically though we only accomplished this task by having measured every French and Chinese man. The logistics of measuring every person is unpractical. Instead we must somehow accomplish what we've done above with only our 20 sample measurements of heights. 
+
+
+Remember this table? 
+
+::: {style="width: 70%; margin: auto;"}
+|   | Avg Chinese | Avg French | Avg Difference (inches) |
+|---------------|-------------:|-----------:|---------------:|
+| `r n_samples` samples | `r xbar_chinese` | `r xbar_french` | `r round(mean(height$diff), 2)` |
+| Entire Population | `r mu_chinese` | `r mu_french` | `r mu_diff` |
+:::
+
+This was the key moment when we realized that Chinese men were on average an inch taller than French men. But critically when we only had 20 samples, we actually thought that the French were taller than the Chinese! Apparently we simply got unlucky and had randomly sampled some rather tall French men and some rather short Chinese. 
+
+If we had incorrectly inferred that French were not shorter than the Chinese we would have assumed that any wars with the Chinese would have gone swimmingly. We would not have thought to hire the Potsdam Giants which would be absolutely necessary to win a war. 
+
+What is to be done? Again the logistics of measuring every mans height is impractical, but when we measured fewer people we made a critical mistake! 
+
+We must develop a sense of how representative our 20 samples. How much can we trust them to tell us about the entire population. This is possible, but requires some work. We will need to take advantage of the statisticians main two tools: randomness and means. Those were the exact same two tools we used when we tried to model the clashing French and Chinese armies. Why is this? 
+
+When we invoke randomness we are making the most conservative assumption we can. We don't know which french soldiers will line up with which Chinese soldiers. Since we don't know, we shouldn't make up an order. The most conservative thing we can do is to act like the order is random. Similarly when we look at our 20 measured heights, we don't know whether they were taken from a taller subset of the population. We sure shouldn't make up anything, our most conservative model says they are just randomly measured men. 
+
+When we use means, we are using the best guess for outcomes, especially when they are aggregated. While we will never know the exact heights of the soldiers in an oncoming Chinese army, if we know their average height we can make meaningful predictions whether we will win the war. This is a classic example of aggregation, their are thousands of soldiers and the outcome of the war is determined by many successive one on one brawls. If the war was determined by a single one on one brawl its practically a coin toss on who will win. 
+
+Inferences can be made about the full population if we assume that our 20 samples were randomly drawn. By assuming that our measured heights are random samples from the Chinese population as a whole we can 
+
+
+## Two Lies
+
+### The Naive Physicist
+
+The naive classical view of physics is that it's core there are tiny little billiard balls that compose everything. They bounce around impacting each other, sometimes forming bonds to make larger structures. Though this remains a popular conception of the universe, physicists universally declare this view to be patently wrong. But this isn't breaking news, classical physics (the billiard balls model) have been rejected for nearly a century. Yet the popular lie is how we introduce physics to high school and college students. Our Engineers build bridges, buildings and planes all using the math of little billiard balls.
+
+<br>
+
+::: text-center
+![](plots/billiardballs2.webp){fig-align="center" width="60%"}
+:::
+
+<br>
+
+It's a lie, but maybe it's a noble one. The billiard ball computations are cheap, intuitive, and have small errors. Therefore we just use billiard ball math for most problems, instead of the expensive, un-intuitive, but more accurate quantum computations That is until you want to build semi-conductors. The math of billiard balls can't handle this type of problem. More precision is needed to see how electrons interact in different materials and billiard ball math gives up.
+
+The expensive, non-intuitive, but accurate quantum math saves the day. While the special quantum math isn't used frequently, it's absolutely essential! You are able to read this text because of semi-conductors in your device use quantum math! All the computers that run our businesses, governments, and world can not work using billiard ball math.
+
+There's another lie out there just as common as the billiard ball lie. This is the lie of the naive philosopher You undoubtedly believe this lie (or at least used to). It's taught to elementary school kids, reinforced by politicians and the media, wielded by lawyers and police officers to invoke justice and punishment. Like the billiard balls lie, there are a select group scientists and experts who reject this lie to solve a narrow but essential set of problems. My purpose is to uncover to you the deeper truth about how the universe truly works.
+
+<br>
+
+### The Naive Philosopher
+
+The naive view is that there true facts and subjective opinions. Second graders are taught true facts by their teachers like there are three types of rocks: metamorphic, sedimentary, & igneous, this is a true fact. They are also exposed to opinions like pizza is the best food.
+
+Our map of the world is a one in territorial dispute between the two great nations opinionation and fact-empire. Occasionally one of these realms will conquer territory from the other. In the last century "smoking causes lung cancer" went from opinion $\rightarrow$ fact, and "fat causes heart disease" went from fact $\rightarrow$ opinion. 
+
+But for the most of the time the divide is clear. Science will never be able to answer some questions like which is the best color or desert. Other things are settled for time and eternity like 2 + 2 = 4, they are indisputable supporting blocks of our universe. 
+
+When we look closer at the world, divvying up the world into facts and opinions is a mistake. The deeper reality that professional philosophers and scientists see is that there are only beliefs. But crucially those beliefs vary along a spectrum. There's beliefs that have lots of strong evidence and beliefs that have little to no evidence. There are beliefs that are tightly held that won't budge no matter how hard you push and there are beliefs that will top over like dominoes with the slightest breeze. 
+
+### No True Facts
+
+Scientists often get into a PR mess when they tell a general public audience about the "theory of evolution". The public interprets the word "theory" to mean that it's not an established fact. This is a partially correct response, indeed evolution is not an established fact. But neither is it an established fact that the sun is a star, we only have the "theory of the sun is a star." 
+
+Am I just relabeling "opinions" with another word "beliefs"? No, we say that people are entitled to their opinions, that their can't 
+
+
+
+
+They are "noble" lies, but admittedly they make life easier for so many enterprises. The judge declaring that the accused is innocent, the engineer certifying the bridge as safe, and the biologist discovering a new species seem like declarations of true facts, they are not. Likewise the art master proclaims his prodigies latest work to be fantastic, the activist says you should vote for their favored politician, and the 
+
+
+
+
+While this deeper truth is considered quixotic, computationally expensive, and un-intuitive; it's more accurate and essential! Semi-conductors, computers and other inventions must use quantum math. Likewise stock markets, epidemiologists, AI's, poker players, and every scientist worth their salt rely on a rejecting the naive philosophers lie.
+
+
+
+Once upon a time, the philosophers of Plato's Academy claimed that the best definition of human was a "featherless biped".  Diogenes of Sinope, also called Diogenes the Cynic, is said to have promptly exhibited a plucked chicken and declared "Here is Plato's man."  The Platonists promptly changed their definition to "a featherless biped with broad nails".
+
+It's ridiculous to see how reductive the aristotellian logic got. They wanted to claim that the word "Human" had a pithy definition that 
+
+
+
+
+
+

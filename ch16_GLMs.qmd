@@ -1,0 +1,315 @@
+---
+title: "Chapter 16 GLMs"
+editor: visual
+execute:
+  echo: false
+  warning: false
+  message: false
+  cache: true
+  cache.lazy: false
+  fig-align: center
+---
+
+```{r setup}
+library(tidyverse)
+library(brms)
+library(rethinking)
+library(flextable)
+library(tidybayes)
+library(ggridges)
+library(ggtext)
+library(patchwork)
+library(ggdag)
+library(ggrepel)
+
+data(Lynx_Hare)
+hare <- Lynx_Hare
+detach("package:rethinking", unload = TRUE)
+
+logit <- function(x){log(x/(1-x))}
+inv_logit <- function(x){ 1/(1+exp(-x))}
+
+```
+
+### Time Series
+
+```{r}
+
+hare_long <- hare %>% 
+  pivot_longer(
+    cols = c("Lynx", "Hare"),
+    names_to = "species",
+    values_to = "pelt_count"
+  )
+
+ggplot(data = hare_long, aes(x = Year, y = pelt_count, color = species))+
+  geom_point(size =1.8)+
+  geom_line(lwd = 1.5, alpha = .6)+
+  scale_color_manual(values = c("skyblue3", "magenta3"))+
+  labs(y = "Pelt Count (thousands)", title = "20 Years of Lynx and Hare Pelts", caption = "As recorded by the Hudson Bay Company")
+```
+
+A common way to model data like this is an **Autoregressive Model**. In an autoregressive model, the value of the outcome in the previous time step is called a *lag variable* and added as a predictor to the right side of a linear model. For example, we might model the mean number of hares at time $t$ as:
+
+$$ E(H_t) = \alpha + \beta_1 H_{t-1} $$
+
+Where $H_t$ is the number of hares at time $t$. if $\beta_1$ is less than 1, then hares tend to regress to some mean population size $\alpha$ we could continue by adding an epicycle for the predator:
+
+$$ E(H_t) = \alpha + \beta_1 H_{t-1} + \beta_2 L_{t-1} $$
+
+Where $L_{t-1}$ is the number of lynx in the previous time period. sometimes people add even deeper lags, like this
+
+$$ E(H_t) = \alpha + \beta_1 H_{t-1} + \beta_2 L_{t-1} + \beta_3 H_{t-2} $$ Now not only does the most recent population size $H_{t-1}$ predict the present, but so too does the population size two time periods ago $H_{t-2}$. Everything from prices to temperature to wars has been modeled this way.
+
+There are several fomous problems with autoregressive models, despite how often they are used. They are surely generalized linear madness. First, nothing that happened two time periods ago causes the present, except through its influence on the state of the system one time period ago. So no lag beyond one period makes any causal sense. It's pure predicitive machinery. Of course some causal influences act slower than others. But that meansyou need another variable, noth that the distance past can influence the present. Second, if the state of the system, $H_t$ and $L_t$ here, are meeasured with error, then the model is propagating error. Itisn't the observed $H_{t-1}$ that influences $H_t$, but rather the real unobserved $H_{t-1}$. In other words, what we really need is a **State Space Model**. Third, in most cases there is no biological, economic, or physical interpretation of the parameters. Consider for example the $\alpha$ intercept in the equations above. It implies that even when there are no hares, $H_{t-1} = 0$, there can be $\alpha$ hares in the next period. Sometimes all this nonsense is okay, if all you care about is forecasting. But often these models don't even make good forecasts, because getting the future right often depends upon having a decent causal model. It's easy to do better, if you use a little science. Below we'll fit the data to an **Ordinary Differential Equation**.
+
+The hare population reproduces at a rate that depends upon the plants. And it shrinks at a rate that depeneds upon predators. Let $H_t$ be the number of hares at time $t$. Then we can assert that the rate of change in the hare population is:
+
+$$\frac{dH}{dt} = H_t(\text{birth rate}) - H_t(\text{death rate})$$
+
+Everything is multiplied by $H_t$, because if there are no hares, then there are no births or deaths. Reproduction and death are *per capita* processes. The simplest ecological model makes birth and death rates constant. Let's call the birth rate $b_H$ and the mortality rate $m_H$. This implies:
+
+$$\frac{dH}{dt} = H_t b_H - H_t m_H = H_t(b_H - m_H)$$
+
+The per capita growth rate is the difference between the birth rate and the death rate. I think of this as the first law of ecology. Every model must include it in some form. The form we want to use here modifies the mortality rate so it also depends upon the presence of a predator, lynx. Let $L_t$ be the number of lynx at time $t$. Then we can write:
+
+$$\frac{dH}{dt} = H_t(b_H - L_t m_H)$$ Similar logic gives us a similar equation for the rate of change in the lynx population:
+
+$$\frac{dL}{dt} = L_t(H_tb_L - m_L)$$
+
+In this case, it is birth that depends upon the other species and mortality that is a constant. Now we have a model in which the population dynamics of the two species are determined by two coupled ordinary differential equations (ODEs). This isn't a realistic model. The plants that hares eat are not constantly available, and lynx eat more than just hares. But let's see how far this model can take us.
+
+This particular model is actually quite famous, called the **Lotka-Volterra Model**. Even when we don't have data it can provide many interesting insights. Like how populations tend to be unstable fluctuating up and down.
+
+These equations don't have a an explicit solution that tells us which $H_t$ and $L_t$ to expect at any time $t$. So how do we use them? We solve them numerically, through simulation.
+
+A differential equation is just a way to update a variable. The equation $\frac{dH}{dt}$ tells us how to update $H$ after each tiny unit of passing time $dt$. This means that once we have a value for $H$, we can update it by just applying the equation $\frac{dH}{dt}$ over and over again. Specifically, we update like this:
+
+$$ H_{t+dt} = H_t + dt\frac{dH}{dt} = H_t + dt Ht (b_H - L_t m_H)$$
+
+We do have to be careful how we do this, because math in a computer is tricky, as you’ve seen before. In particular, the value we choose for dt needs to be small enough to provide a good approximation of continuous time. But this tactic really does work. And it allows us to see what the model implies, before we’ve fit it to data.
+
+```{r}
+sim_lynx_hare <- function(n_steps, init, theta, dt = 0.002) { 
+  
+  L <- rep(NA, n_steps)
+  H <- rep(NA, n_steps)
+  
+  # set initial values
+  L[1] <- init[1]
+  H[1] <- init[2]
+  
+  for (i in 2:n_steps) {
+    H[i] <- H[i - 1] + dt * H[i - 1] * (theta[1] - theta[2] * L[i - 1])
+    L[i] <- L[i - 1] + dt * L[i - 1] * (theta[3] * H[i - 1] - theta[4])
+  }
+  
+  # return a tibble
+  tibble(t = 1:n_steps,
+         H = H,
+         L = L)
+  
+}
+
+```
+
+
+```{r}
+# simulate
+
+theta <- c(0.5, 0.05, 0.025, 0.5)
+simulation <- sim_lynx_hare(n_steps = 1e4, 
+                   init = c(filter(hare, Year == 1900) %>% pull("Lynx"), 
+                            filter(hare, Year == 1900) %>% pull("Hare")), 
+                   theta = theta)
+
+simulation %>% 
+  pivot_longer(cols = c("H", "L"),
+               names_to = "species",
+               values_to = "count") %>% 
+  mutate(species = ifelse(species == "H", "Hare", "Lynx")) %>% 
+  ggplot(aes(x = t, y = count, color = species)) +
+  geom_line(lwd = 1.3, alpha = .8)+
+  scale_color_manual(values = c("skyblue3", "magenta3"))+
+  labs(title = "Simulating our Differential Equation", y = "Count", x= "Time")
+
+```
+
+All we've done to make this graph is plug in the initial starting populations from our data and then made up the following theta parameters:
+
+where:
+
+$b_H$ birth rate of hares at population of Hares $H$ is: 0.5
+
+$m_H$ mortality rate of hares at population of Hares $H$ is: 0.05
+
+$b_L$ birth rate of lynx at population of Lynx $L$ is: 0.025
+
+$m_L$ mortality rate of lynx at population of Hares $L$ is: 0.05
+
+We then put those parameters in our differential equations:
+
+
+
+**The statistical model.** To turn the lynx-hare model into a statistical analysis, we need to connect the deterministic population dynamics to the observed data. Observed data have many reasons not to exactly match a deterministic expectation. The most obvious is that we never get to count every hare and lynx. We just have partial samples. So we need to model both the underlying population dynamics and the observation process.
+
+Let $H_t$ and $L_t$ as before represent the numbers of hares and lynx at time $t$. And now let $h_t$ and $l_t$ represent the observed numbers of hares and lynx. While $H_t$ causes $H_t+d_t$, the observed $h_t$ does not cause anything. It’s just a pale reflection of the unobserved state of the system at time $t$. We have to use a statistical model to project it back to the underly model of $H_t$ and $L_t$. Then we can make a prediction for $h_t + d_t$ and $l_t + d_t$
+
+To do this, we need to assign an error distribution to the observation process. To do this in a principled way, we should outline the generative process that goes from the true state of nature, $H_t$, to the measurement, $h_t$. First, hares get trapped. Suppose each hare is trapped with some probability pt which varies year to year, for all sorts of reasons. Third, the actual number of pelts were rounded to the nearest 100 and divided by 1000. So they are no longer counts exactly. This all sounds like a mess. That’s measurement for you.
+
+We can do this though. Suppose for example there is a population of $H_t$ = 104 hares. Suppose also that the annual trapping rate varies according to a beta distribution $p_t ∼ \text{Beta}(2, \ 18)$. This means the average is 10% (mean of beta \$ = \alpha / (\alpha + \beta) = 2 / (2 + 18) = 0.1\$), but it is very rarely double that. We get a binomial count of pelts sampled for the population of hares, and then that is rounded to the nearest 100 and divided by 1000. Let’s see what this sort of distribution looks like:
+
+```{r}
+
+n  <- 1e5
+Ht <- 1e5
+
+set.seed(16)
+
+# simulate
+tibble(pt = rbeta(n, shape1 = 2, shape2 = 18)) %>% 
+  mutate(ht = rbinom(n, size = Ht, prob = pt)) %>% 
+  mutate(ht = round(ht / 1000, digits = 2)) %>% 
+  
+  # plot
+  ggplot(aes(x = ht)) +
+  geom_histogram(linewidth = 1/4, binwidth = 0.1,
+                 color = "white", fill = "grey67") +
+  scale_y_continuous(NULL, breaks = NULL) +
+  xlab(expression(thousand~of~pelts~(italic(h[t]))))+
+  labs(title = "Year Count of Pelts")
+
+set.seed(16)
+
+# define the 3 X 3 grid
+tibble(shape1 = c(2, 10, 18),
+       shape2 = c(18, 10, 2)) %>% 
+  expand_grid(Ht = c(5e3, 1e4, 15e3)) %>% 
+  # simulate
+  mutate(pt = purrr::map2(shape1, shape2, ~rbeta(n, shape1 = .x, shape2 = .y))) %>% 
+  mutate(ht = purrr::map2(Ht, pt, ~rbinom(n, size = .x, prob = .y))) %>% 
+  unnest(c(pt, ht)) %>% 
+  # wrangle
+  mutate(ht    = round(ht / 1000, digits = 2),
+         beta  = str_c("italic(p[t])%~%'Beta '(", shape1, ", ", shape2, ")"),
+         Htlab = str_c("italic(H[t])==", Ht)) %>%
+  mutate(beta  = factor(beta,
+                        levels = c("italic(p[t])%~%'Beta '(2, 18)", "italic(p[t])%~%'Beta '(10, 10)", "italic(p[t])%~%'Beta '(18, 2)")),
+         Htlab = factor(Htlab,
+                        levels = c("italic(H[t])==15000", "italic(H[t])==10000", "italic(H[t])==5000"))) %>% 
+  
+  # plot!
+  ggplot(aes(x = ht)) +
+  geom_histogram(aes(),
+                 linewidth = 1/10, binwidth = 0.3, boundary = 0) +
+  geom_vline(aes(xintercept = Ht / 1000), 
+             linewidth = 1/4, linetype = 2) +
+  scale_fill_grey(start = .67, end = 0, breaks = NULL) +
+  scale_y_continuous(NULL, breaks = NULL) +
+  xlab(expression(thousand~of~pelts~(italic(h[t])))) +
+  facet_grid(Htlab ~ beta, labeller = label_parsed, scales = "free_y")
+```
+
+
+
+Our proposed model is:
+
+$\text{Captured Hares}_t \sim \text{Log-Normal( log( Percent of Hares Captured }  \times \text{ Hares}_t), \ \sigma_H)$
+
+$$\text{Percent of Hares Captured} \sim \text{Beta}( 40, 200)$$
+
+$$\sigma_H \sim \text{Exponential}(1)$$
+
+<br>
+
+$\text{Captured Lynx}_t \sim \text{Log-Normal( log( Percent of Lynx Captured }  \times \text{ Lynx}_t), \ \sigma_L)$
+
+$$\text{Percent of Lynx Captured} \sim \text{Beta}( 40, 200)$$
+
+$$\sigma_L \sim \text{Exponential}(1)$$
+
+<br>
+
+$\text{Hares}_1 \sim \text{Log-Normal( log 10, 1)}$
+
+$\text{Lynx}_1 \sim \text{Log-Normal( log 10, 1)}$
+
+
+<br>
+
+$\text{Hares}_{T\gt1} = \text{Hares}_1 + \int_{1}^{T} \text{Hares}_t  \times \ (\text{Birth}_\text{hares} - \text{Mortality}_\text{hares} \times \text{Lynx}_t) \ dt$
+
+$$\text{Birth}_\text{hares} \sim \text{Half-Normal}(1, \ 0.5)$$
+
+$$\text{Mortality}_\text{hares} \sim \text{Half-Normal}(0.5, \ 0.5)$$
+
+<br>
+
+$\text{Lynx}_{T\gt1} = \text{Lynx}_1 + \int_{1}^{T} \text{Lynx}_t  \times \ (\text{Birth}_\text{lynx} - \text{Mortality}_\text{lynx} \times \text{Hares}_t) \ dt$
+
+$$\text{Birth}_\text{lynx} \sim \text{Half-Normal}(0.5, \ 0.5)$$
+
+$$\text{Mortality}_\text{lynx} \sim \text{Half-Normal}(1, \ 0.5)$$
+
+```{r}
+hare_long <- hare_long %>% 
+  mutate(delta = if_else(species == "Lynx", 1, 0),
+         t     = Year - min(Year) + 1) %>% 
+  arrange(delta, Year)
+```
+
+
+```{r}
+LotkaVolterra <- "
+// Sepcify dynamical system (ODEs)
+real[] ode_LV(real t,         // time
+              real [] y,      // the system rate
+              real [] theta,  // the parameters (i.e., the birth and mortality rates)
+              real [] x_r,    // data constant, not used here
+              int [] x_i) {   // data constant, not used here
+  // the outcome
+  real dydt[2];
+  
+  // differential equations
+  dydt[1] = (theta[1] - theta[2] * y[2]) * y[1]; // Hare process
+  dydt[2] = (theta[3] * y[1] - theta[4]) * y[2]; // Lynx process
+  
+  return dydt;  // return a 2-element array
+              }
+
+// Integrate ODEs and prepare output
+real LV(real t, real Hare0, real Lynx0, 
+        real brHare, real mrHare, 
+        real brLynx, real mrLynx,
+        real delta) {
+        
+  real y0[2];     // Initial values
+  real theta[4];  // Parameters
+  real y[1, 2];   // ODE solution
+  // Set initial values
+  y0[1] = Hare0; 
+  y0[2] = Lynx0;
+  // Set parameters
+  theta[1] = brHare; 
+  theta[2] = mrHare;
+  theta[3] = brLynx; 
+  theta[4] = mrLynx;
+  // Solve ODEs
+  y = integrate_ode_rk45(ode_LV, 
+                         y0, 0, rep_array(t, 1), theta,
+                         rep_array(0.0, 0), rep_array(1, 1),
+                         0.001, 0.001, 100); // tolerances, steps
+                         
+  // Return relevant population values based on our dummy-variable coding method
+  return (y[1, 1] * (1 - delta) + 
+          y[1, 2] * delta);
+}
+"
+```
+
+
+```{r}
+
+data(Lynx_Hare_model)
+cat(Lynx_Hare_model)
+```

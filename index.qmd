@@ -45,27 +45,62 @@ I love visualizations and try to use them as often as I can. But they're severel
 
 </details>
 
-## Index
+## Course Contents
 
-**(1) [Linear Regression](ch4_linear_regression_polished.qmd) 📈**
+### 1) Linear Regression 📈
+How can we use one variable (e.g. Education) to predict another (e.g. Salary). Doctorates love this one weird trick which is correlated with scientific progress ($R^2$ = 0.5)
 
--   How can we use one variable (e.g. Education) to predict another (e.g. Salary). Doctorates love this one weird trick which is correlated with scientific progress ($R^2$ = 0.5)
+[Read Chapter →](ch4_linear_regression_polished.qmd)
 
-**(2) [Multi Regression](ch5_multilinear.qmd) 📊**
+---
 
--   You're worried that the correlation of *ice cream* and *drownings* might be because it's hot outside
+### 2) Multiple Regression 📊
+You're worried that the correlation of *ice cream* and *drownings* might be because it's hot outside
 
-**(3)️ [Causality](ch6_DAG.qmd) 🔀**
+[Read Chapter →](ch5_multilinear.qmd)
 
--   [Oops](https://x.com/robinhanson/status/1925009123675975702) you can't just keep adding things to the regression 🫣
+---
 
-**(4)️ [Model Metrics](ch7ModelComparison.qmd) 🎯**
+### 3) Causality 🔀
+[Oops](https://x.com/robinhanson/status/1925009123675975702) you can't just keep adding things to the regression 🫣
 
--   AIC, LOO, Occam's razor, Oh my!
+[Read Chapter →](ch6_DAG.qmd)
 
-**(5) [Interactions](ch8_conditional.qmd) 🎨**
+---
 
--   Covariate effects conditional on other covariate effects!
+### 4) Model Metrics 🎯
+AIC, LOO, Occam's razor, Oh my!
+
+[Read Chapter →](ch7ModelComparison.qmd)
+
+---
+
+### 5) Interactions 🎨
+Covariate effects conditional on other covariate effects!
+
+[Read Chapter →](ch8_conditional.qmd)
+
+---
+
+### 5) Integer Models 🔢
+Covariate effects conditional on other covariate effects!
+
+[Read Chapter →](ch11_integerGLM.qmd)
+
+---
+
+### 5) General Linear Madness 🤪
+Covariate effects conditional on other covariate effects!
+
+[Read Chapter →](ch16_GLMs.qmd)
+
+---
+
+<br>
+
+<br>
+
+
 
 ## References
 

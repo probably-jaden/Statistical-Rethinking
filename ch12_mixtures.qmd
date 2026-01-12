@@ -1,0 +1,288 @@
+---
+title: "Mixture Models"
+editor: visual
+execute:
+  echo: false
+  warning: false
+  message: false
+  freeze: auto
+  fig-align: center
+---
+
+
+```{r}
+library(tidyverse)
+library(brms)
+library(rethinking)
+library(flextable)
+library(tidybayes)
+library(ggridges)
+library(ggtext)
+library(patchwork)
+library(ggdag)
+library(ggrepel)
+
+data(UCBadmit, package = "rethinking") 
+admit <-  UCBadmit %>% 
+  mutate(gid = ifelse(applicant.gender == "male", "1", "2"))
+
+detach("package:rethinking", unload = TRUE)
+
+logit <- function(x){
+  log(x/(1-x))
+}
+inv_logit <- function(x){
+  1/(1+exp(-x))
+}
+
+beta_sd <- function(mu, k){
+  sqrt((mu * (1 - mu))/(k+1))
+}
+
+ab_mk <- function(alpha, beta){
+  mu <- alpha/(alpha + beta)
+  kappa <- alpha + beta
+  return(list(mu = mu, kappa = kappa))
+}
+
+mk_ab <- function(mu, k){
+  alpha <- mu * k
+  beta <- k * (1-mu)
+  return(list(a = alpha, b = beta))
+}
+
+
+mk_ab(.75, 100)
+ab_mk(75, 25)
+```
+
+This chapter is about constructing likelihood and link functions by piecing together the simpler components of previous chapters. These hybrid likelihoods contain pieces of other model types. Endowed with some properties of each piece, they help us model outcome variables with inconvenient, but common, properties. But beware, these models are both powerful and dangerous. They are often harder to estimate and to understand. But with some knowledge and caution, they are important tools.
+
+These model types help us transform our modeling to cope with the inconvenient realities of measurement, rather than transforming measurements to cope with the constraints of our models.
+
+
+## Over-Dispersion
+
+Models based on normal distributions can be overly sensitive to extreme observations. The problem isn’t necessary that “outliers” are bad data. Rather processes are often variable mixtures and this results in thicker tails.
+
+### Beta-Binomial
+
+We'll once again be looking at our UC Berkely admit data, trying to predict the odds for student applicants getting accepted.
+
+$$\text{admit}_i \sim \text{Beta Binomial}(
+ \text{# of applications}_i, \ \bar p_i, \ \phi)$$ 
+ 
+
+$$\text{logit}(\bar p_i) = \alpha_\text{gender id[i]}$$
+$$\alpha_j \sim \text{Normal}(0, \ 1.5)$$
+
+$$\phi \sim \text{Exponential}(1)$$
+```{r}
+beta_binomial2 <- custom_family(
+  "beta_binomial2", dpars = c("mu", "phi"),
+  links = c("logit", "log"),
+  lb = c(0, 2), ub = c(1, NA),
+  type = "int", vars = "vint1[n]"
+)
+
+stan_funs <- "
+  real beta_binomial2_lpmf(int y, real mu, real phi, int T) {
+    return beta_binomial_lpmf(y | T, mu * phi, (1 - mu) * phi);
+  }
+  int beta_binoimal2_rng(real mu, real phi, int T) {
+    return beta_binomial_rng(T, mu * phi, (1 - mu) * phi);
+  }
+"
+
+stanvars <- stanvar(scode = stan_funs, block = "functions")
+```
+ 
+
+```{r}
+#| fig-width: 8
+#| fig-height: 4
+
+admit <- admit %>% 
+  rename("g" = applicant.gender)
+
+admit_12.1 <-
+  brm(data = admit, 
+      family = beta_binomial2,  # here's our custom likelihood
+      admit | vint(applications) ~ 0 + g,
+      prior = c(prior(normal(0, 1.5), class = b),
+                prior(exponential(1), class = phi)),
+      iter = 2000, warmup = 1000, cores = 4, chains = 4, silent = 2,
+      stanvars = stanvars,  # note our `stanvars`
+      seed = 12, file = "fits/b12.03", backend = "cmdstanr")
+
+as_draws_df(admit_12.1) %>% 
+  mutate(g_diff = b_gmale - b_gfemale) %>% 
+  ggplot(aes(x = g_diff)) +
+  geom_density()
+  
+
+admit_draws_clean <- as_draws_df(admit_12.1) %>% 
+  mutate(p_male = inv_logit(b_gmale),
+         p_female = inv_logit(b_gfemale)) 
+
+admit_betabinom_draws <- admit_draws_clean %>% 
+  mutate(id = row_number()) %>% 
+  slice_sample(n = 100) %>% 
+  dplyr::select(c(id, p_male, p_female, phi)) %>% 
+  expand_grid(x = seq(from = 0, to = 1, by = 0.01)) %>% 
+  mutate(density_male = dbeta(x, shape1 = mk_ab(p_male, phi)$a, 
+                         shape2 = mk_ab(p_male, phi)$b),
+         density_female = dbeta(x, shape1 = mk_ab(p_female, phi)$a, 
+                         shape2 = mk_ab(p_female, phi)$b))
+
+mean_admit <- admit_draws_clean %>% 
+  summarize(p_mean_male = mean(p_male),
+            p_mean_female = mean(p_female),
+            phi_mean = mean(phi)) %>% 
+  expand_grid(x = seq(from = 0, to = 1, by = 0.01)) %>% 
+  mutate(dens_mean_male = dbeta(x, shape1 = mk_ab(p_mean_male, phi_mean)$a,
+                                shape2 =  mk_ab(p_mean_male, phi_mean)$b),
+         dens_mean_female = dbeta(x, shape1 = mk_ab(p_mean_female, phi_mean)$a,
+                                shape2 =  mk_ab(p_mean_female, phi_mean)$b))
+
+male <- ggplot()+
+  geom_line(data = admit_betabinom_draws, 
+            aes(x = x, y = density_male, group = id), alpha = .1, color = "blue")+
+  geom_line(data = mean_admit, 
+            aes(x = x, y = dens_mean_male), color = "blue4", lwd = 1.5)+
+  theme_minimal()+
+  scale_y_continuous(NULL, breaks = NULL, limits = c(0, 3)) +
+  labs(x = "Probability Admit", y = "", title = "Male")
+
+female <- ggplot()+
+  geom_line(data = admit_betabinom_draws, 
+            aes(x = x, y = density_female, group = id), alpha = .1, color = "deeppink")+
+  geom_line(data = mean_admit, 
+            aes(x = x, y = dens_mean_female), color = "deeppink3", lwd = 1.5)+
+  theme_minimal()+
+  scale_y_continuous(NULL, breaks = NULL, limits = c(0, 3)) +
+  labs(x = "Probability Admit", y = "", title = "Female")
+
+male + female
+
+```
+
+
+
+
+```{r}
+admit$admit
+admit$dept
+
+admit_draws_clean %>% 
+  mutate(alpha_male = phi * p_male,
+         alpha_female = phi * p_female, 
+         beta_male = (1-p_male) * phi,
+         beta_female = (1-p_female) * phi) %>% 
+  dplyr::select(c(alpha_male, alpha_female, beta_male, beta_female))%>%
+  mutate(iteration = row_number()) %>%  # Add MCMC iteration ID
+  pivot_longer(
+    cols = -iteration,
+    names_to = "parameter",
+    values_to = "value"
+  ) %>%
+  separate(parameter, into = c("param_type", "gender"), sep = "_") %>% 
+  pivot_wider(
+    names_from = param_type,
+    values_from = value
+  ) %>% 
+  mutate()
+
+
+admit_draws_clean %>% 
+  dplyr::select(p_female, phi) %>% 
+  crossing(admit %>% filter(g == "female") %>% dplyr::select(dept, applications)) %>% 
+  mutate(alpha = p_female * phi,
+         beta = (1-p_female) * phi,
+         ppd_mu = rbinom(n(), size = applications, prob = p_female),
+         ppd_prob_mu = ppd_mu / applications,
+         ppd = rbinom(n(), size = applications, prob = rbeta(n(), alpha, beta)),
+         ppd_prob = ppd / applications) %>% 
+  dplyr::select(c(dept, ppd_prob, ppd_prob_mu)) %>% 
+  pivot_longer(cols = -dept, 
+               names_to = "var",
+               values_to = "prob") %>% 
+  ggplot(aes(x = prob, color = var, group = var))+
+  geom_density()+
+  facet_wrap(~dept)+
+  scale_y_reverse(NULL, breaks = NULL) +
+  coord_flip() 
+  
+  
+female_ppd <- admit_draws_clean %>% 
+  dplyr::select(p_female, phi) %>% 
+  crossing(admit %>% filter(g == "female") %>% dplyr::select(dept, applications)) %>% 
+  mutate(alpha = p_female * phi,
+         beta = (1-p_female) * phi,
+         ppd_mu = rbinom(n(), size = applications, prob = p_female),
+         ppd_prob_mu = ppd_mu / applications,
+         ppd = rbinom(n(), size = applications, prob = rbeta(n(), alpha, beta)),
+         ppd_prob = ppd / applications) %>% 
+  dplyr::select(c(dept, ppd_prob, ppd_prob_mu)) %>% 
+  pivot_longer(cols = -dept, 
+               names_to = "var",
+               values_to = "prob") %>% 
+  mutate(dept = fct_relabel(dept, ~ paste0(.x, " female")),
+         dept = as.character(dept))
+
+
+
+male_ppd <- admit_draws_clean %>% 
+  dplyr::select(p_male, phi) %>% 
+  crossing(admit %>% filter(g == "male") %>% dplyr::select(dept, applications)) %>% 
+  mutate(alpha = p_male * phi,
+         beta = (1-p_male) * phi,
+         ppd_mu = rbinom(n(), size = applications, prob = p_male),
+         ppd_prob_mu = ppd_mu / applications,
+         ppd = rbinom(n(), size = applications, prob = rbeta(n(), alpha, beta)),
+         ppd_prob = ppd / applications) %>% 
+  dplyr::select(c(dept, ppd_prob, ppd_prob_mu)) %>% 
+  pivot_longer(cols = -dept, 
+               names_to = "var",
+               values_to = "prob") %>% 
+  mutate(dept = fct_relabel(dept, ~ paste0(.x, " male")),
+         dept = as.character(dept)) %>% 
+  arrange((dept))
+
+ppd_full <- rbind(female_ppd, male_ppd) %>% 
+  arrange((dept))
+
+
+admit_glabel <- admit %>% mutate(dept = (paste0(dept, " ", g)))
+
+ggplot()+
+  geom_density_ridges(data = ppd_full, 
+                      aes(x = prob, y = dept, color = var, fill = var, group = interaction(var, dept)),
+                      rel_min_height = 0.01, rel_max_height = 0.99, scale = .5, alpha = .3)+
+  geom_point(data = admit_glabel,
+             aes(x = admit /applications, y =  dept))+
+  coord_flip()+
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  scale_x_continuous(labels = scales::percent_format(), limits = c(0, 1))+
+  scale_color_discrete(name = "", labels = c("full distribution", "mean"))+
+  scale_fill_discrete(name = "", labels = c("full distribution", "mean"))+
+  labs(y = "Department & Sex", x = "Acceptance Rate", title = "Posterior Predictive Check")
+```
+
+As we can see the raw data are consistent with the prediction intervals. But those intervals are so incredibly wide, they’re hardly an endorsement of the model. Once we learn about hierarchical models, we’ll be able to do much better.
+
+### Gamma-Poisson
+
+A negative-binomial model, more usefully called a gamma-Poisson model, assumes that each Poisson count observation has its own rate. It estimates the shape of a gamma distribution to describe the Poisson rates
+across cases. Predictor variables adjust the shape of this distribution, not the expected value
+of each observation.
+
+These gamma-Poisson models are very useful. The reason is that Poisson distributions are very narrow. The variance must equal the mean, recall. The gamma-Poisson distribution has two parameters, one for the mean (rate) and another for the dispersion (scale) of the rates across cases.
+
+$$\text{outcome}_i \sim \text{Gamma-Poisson}(\lambda, \ \phi)$$
+
+The $\lambda$ parameter can be treated like the rate of an ordinary Poisson. The $\phi$ parameter must be positive and controls the variance. The variance of the gamma-Poisson is $\lambda + \lambda^2/\phi$. So larger $\phi$ values mean the distribution is more similar to a pure Poisson process.
+
+
+Let’s see how this works with the Oceanic tools example from the previous chapter. There was a highly influential point, Hawaii, that will become much less influential in the equivalent gamma-Poisson model. Why? Because gamma-Poisson expects more variation around the mean rate. As a result, Hawaii ends up pulling the regression trend less.

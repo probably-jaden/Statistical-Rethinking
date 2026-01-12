@@ -28,8 +28,19 @@ data(UCBadmit)
 admit <- UCBadmit
 data(chimpanzees)
 chimp <- chimpanzees
+data(AustinCats, package = "rethinking")
+cats <- AustinCats
 
 detach("package:rethinking", unload = TRUE)
+
+logit <- function(x){
+  log(x/(1-x))
+}
+
+inv_logit <- function(x){
+  1/(1+exp(-x))
+}
+
 ```
 
 ### Simple Logistic Model
@@ -732,8 +743,8 @@ tibble(i = 1:N,
 
 The conservative $\beta \sim \text{Normal(0, 10)}$ gives insane predictions. Saying that just 1 std deviation from the avg island population leads to thousands of tools is ridiculous.
 
-To get a better grasp of what our more reasonable $\beta \sim \text{Normal(0, 0.2)}$ prior looks like we can make the population into it's un-standardized and non-logged transforms. 
-  
+To get a better grasp of what our more reasonable $\beta \sim \text{Normal(0, 0.2)}$ prior looks like we can make the population into it's un-standardized and non-logged transforms.
+
 ```{r}
 #| fig-height: 3
 #| fig-width: 8
@@ -825,7 +836,6 @@ tools_11.3 <- brm(
 
 ```
 
-
 ```{r}
 #| fig-width: 8
 #| fig-height: 3
@@ -878,6 +888,7 @@ tibble(culture = tools$culture,
   pivot_wider(names_from = culture, 
               values_from = k)
 ```
+
 It turns out Tonga and Hawai'i are very influential. The plot below will clarify why
 
 ```{r}
@@ -936,7 +947,7 @@ p1 | p2
 
 ```
 
-Hawaii's high influence on the posterior makes sense given it's large population and it's large set of tools. This doesn't mean it's an outlier that needs to be dropped. 
+Hawaii's high influence on the posterior makes sense given it's large population and it's large set of tools. This doesn't mean it's an outlier that needs to be dropped.
 
 Look at the posterior predictions in our above figure. Notice that the trend for societies with high contact red is higher than the trend for societies with low contact blue with population size is low, but then the model allows it to actually be smaller. The means cross one another at high population sizes. Of course the model is actually saying it has no idea where the trend for high contact societies goes at high population sizes, because there are no high population size societies with high contact. There is only low-contact Hawaii. But it is still a silly pattern that we know shouldn’t happen. A counter-factual Hawaii with the same population size but high contact should theoretically have at least as many tools as the real Hawaii. It shouldn’t have fewer.
 
@@ -946,11 +957,9 @@ Let’s stop and think. Instead of the conventional GLM above, we could use the 
 
 What we want is a dynamic model of the cultural evolution of tools. Tools aren’t created all at once. Instead they develop over time. Innovation processes at them to a population. Processes of loss remove them. These forces balance to produce tool kits of different sizes.
 
-The simplest model assumes that innovation is proportional to population size with some diminishing returns (an elasticity). It also assumes that tool loss is proportional to the number of tools, with no diminishing returns. 
+The simplest model assumes that innovation is proportional to population size with some diminishing returns (an elasticity). It also assumes that tool loss is proportional to the number of tools, with no diminishing returns.
 
-$$ \Delta \text{Number of Tools} = (\alpha \times \text{Population}^\beta)  - (\gamma \times \text{Number of Tools})$$
-Where $ \alpha, \ \beta, \  \gamma $ are parameters to be estimated. $\alpha$ is how innovation is proportional to population, $\beta$ represents the diminishing returns, and $\gamma$ is the tool loss proportional to the number of tools. 
-To find equilibrium we set $ \Delta \text{Number of Tools} = 0 $ and solve for Number of Tools. This yields:
+$$ \Delta \text{Number of Tools} = (\alpha \times \text{Population}^\beta)  - (\gamma \times \text{Number of Tools})$$ Where \$ \alpha,  \beta,   \gamma \$ are parameters to be estimated. $\alpha$ is how innovation is proportional to population, $\beta$ represents the diminishing returns, and $\gamma$ is the tool loss proportional to the number of tools. To find equilibrium we set \$ \Delta \text{Number of Tools} = 0 \$ and solve for Number of Tools. This yields:
 
 $$ \widehat{\text{Number of Tools}} = \frac{\alpha \times \text{Population}^\beta}{\gamma} $$
 
@@ -960,16 +969,13 @@ $$ \text{Number of Tools}_i \sim \text{Poisson}(\lambda_i) $$
 
 $$\lambda_i = \frac{\alpha \times \text{Population}_i^\beta}{\gamma}$$
 
-Notice that there is no link function! All we have to do to ensure that $\lambda$ remains positive is to make  sure the parameters are positive. I'll use exponential priors for $\beta$ and $\gamma$ and a log-Normal for $\alpha$. Then they all have to be positive. In building the model we also want to allow some or all of the parameters to vary by contact rate. Since contact rate is suppose to mediate the influence of population size, let's allow $\alpha$ and $\beta$. It could also influence $\gamma$, because trade networks might prevent tools from vanishing over time.
+Notice that there is no link function! All we have to do to ensure that $\lambda$ remains positive is to make sure the parameters are positive. I'll use exponential priors for $\beta$ and $\gamma$ and a log-Normal for $\alpha$. Then they all have to be positive. In building the model we also want to allow some or all of the parameters to vary by contact rate. Since contact rate is suppose to mediate the influence of population size, let's allow $\alpha$ and $\beta$. It could also influence $\gamma$, because trade networks might prevent tools from vanishing over time.
 
-$$ \lambda_i = \frac{\text{exp}(\alpha) \times \text{Population}_i^\beta}{\gamma} $$
-$$ \alpha_\text{Contact Level [i]} \sim \text{Normal(1, 1)} $$
+$$ \lambda_i = \frac{\text{exp}(\alpha) \times \text{Population}_i^\beta}{\gamma} $$ $$ \alpha_\text{Contact Level [i]} \sim \text{Normal(1, 1)} $$
 
 $$ \beta_\text{Contact Level [i]} \sim \text{Exponential(1)} $$
 
 $$ \gamma \sim \text{Exponential(1)} $$
-
-
 
 ```{r}
 tools_11.4 <- brm(
@@ -1000,8 +1006,6 @@ cbind(tools, tools_11.4$criteria$loo$diagnostics) %>%
   arrange(desc(pareto_k)) %>% 
   pivot_wider(names_from = "culture", values_from = "pareto_k")
 ```
-
-
 
 ```{r}
 #| fig-height: 3
@@ -1043,5 +1047,544 @@ This new scientific model does do better on our model metrics. Having a few poin
 loo_compare(tools_11.2, tools_11.4, criterion = "loo") %>% print(simplify = F)
 ```
 
-
 ### Negative Binomial (gamma-Poisson) models
+
+Typically there is a lot of unexplained variation in Poisson models. Presumably this additional variation arises from unobserved influences that vary from case to case, generating variation in the true $\lambda$’s. Ignoring this variation, or rate heterogeneity, can cause confounds just like it can for binomial models. So a very common extension of Poisson GLMs is to swap the Poisson distribution for the **Negative Binomial distribution**. This is really a Poisson distribution in disguise and it is also sometimes called the **Gamma-Poisson** distribution of this reason.
+
+The parameter $\lambda$ is the expected value of a Poisson model, but it's also commonly thought of as a rate. Both interpretations are correct, and realizing this allows us to make Poisson models for which the exposure varies across cases $i$.
+
+Going back to our monastery example, imagine that your monastary does daily totals of manuscripts, but the neighboring monastery totals of weekly sums. How could you analyze both in the same model, given that the counts are aggregated over different amounts of time, different exposures?
+
+Implicitly $\lambda$ is equal to an expected number of events, $\mu$, per unit time or distance $\tau$. This implies that $\lambda = \frac{\mu}{\tau}$, which lets us redefine the link:
+
+$$ \text{Total Manuscripts}_i \sim \text{Poisson}(\lambda_i) $$
+
+$$ \text{log}(\lambda_i) = \text{log}(\frac{\mu_i}{\tau_i}) = \alpha + \beta x_i $$
+
+Since the logarith of a ratio is the difference of logarithms, we can also write:
+
+$$ \text{log} (\lambda_i) = \text{log}(\mu_i) - \text{log}(\tau_i) = \alpha + \beta x_i $$
+
+These $\tau$ values are the "exposures." So if different observations $i$ have different exposures, then this implies that the expected value on row $i$ is given b:
+
+$$ \text{log} (\mu_i) = \log (\tau_i) + \alpha + \beta x_i $$
+
+When $\tau_i = 1$, then $\text{log} (\tau_i) = 0$ and we're back to where we started. But when the exposure varies across cases, then $\tau_i$ does the important work of correctly scaling the expected number of events for each case $i$. So you can model cases with different exposures just by writing a model like:
+
+$$ \text{Total Manuscripts}_i \sim \text{Possion}(\mu_i) $$
+
+$$ \text{log}(\mu_i) = \text{log}(\tau_i) + \alpha + \beta x_i $$
+
+Where $\tau_i$ is a column in the data. So this is just like adding a predictor, the logarithm of the exposure without adding a parameter to it. You could throw a parameter in front of it, which if it's not equal to 1 that's another way to say the rate is not constant with time. The non-parameterized $\tau$ is typically called an *offset*.
+
+Let's simulate our monastery example:
+
+```{r, echo = TRUE}
+set.seed(11)
+num_days <- 30
+our_monastery <- rpois(num_days, 1.5) # our rate let's say is 1.5
+their_monastery <- rpois(floor(num_days/7), 0.5 * 7) # their rate is 0.5
+```
+
+To analyze both monasteries we just add the logarithm of the exposure to the linear model.
+
+```{r}
+both_monasteries <- c(our_monastery, their_monastery)
+exposure <- c(rep(1,30), rep(7, 4))
+monastery <- c(rep(0, 30), rep(1, 4))
+monasteries <- data.frame(manuscripts = both_monasteries, days = exposure, monastery = monastery) %>% 
+  mutate(log_days = log(days))
+
+manuscript_11.1 <- brm(
+  data = monasteries,
+  family = poisson,
+  manuscripts ~ 1 + offset(log_days) + monastery, 
+  prior = c(prior(normal(0, 1), class = Intercept),
+            prior(normal(0, 1), class = b)),
+  iter = 2000, warmup = 1000, cores = 4, chains = 4, seed = 11, 
+  file = "fits/manuscript_11.01.1", backend = "cmdstanr", silent = 2
+)
+```
+
+To get the posterior distributions for average daily outputs for the old and new monasteriesm respectively, we'll use these formulas:
+
+$$ \lambda_\text{old} = \text{exp}(\alpha) $$
+
+$$ \lambda_\text{new} = \text{exp}(\alpha + \beta_\text{monastery}) $$
+
+We exponentiate the linear parameters to reverse the log-link on $\lambda$
+
+```{r}
+#| fig-width: 8
+#| fig-height: 3
+
+posterior_samples(manuscript_11.1) %>% 
+  mutate(`lambda~Our~Monastery` = exp(b_Intercept),
+         `lambda~Their~Monastery` = exp(b_Intercept + b_monastery)
+         ) %>% 
+  dplyr::select(c(`lambda~Our~Monastery`, `lambda~Their~Monastery`)) %>% 
+  pivot_longer(everything()) %>% 
+  ggplot(aes(x = value, y = name, color = name, fill = name)) +
+  geom_density_ridges(adjust = 2, alpha = 0.7, lwd = 1.3, show.legend = FALSE) +
+  scale_y_discrete(labels = function(x) parse(text = x)) +
+  theme_minimal()+
+  labs(x = "Lambda - Rate per Day", y = "", title = "Difference in Monasteries Rates")
+
+
+
+
+
+
+
+```
+
+With only 4 observations of their records we were able to roughly retrieve their rate of 0.5 manuscripts per day.
+
+### Multinomial and Categorical Models
+
+So far we've modeled outcomes that are binary with the binomial distribution, like choosing a random location on the globe and seeing if it's land or water. But imagine we want to model the land, water, and deserts on the globe, or any other number of different ecosystem types. Just like land or water, we'll treat our different ecosystems as mutual exclusive. To model multiple mutually exclusive outcomes the maximum entropy distribution is the **Multi-Nomial Distribution**. The binomial distribution is really just a special case of this distribution so their formulas resemble each other. If there are $K$ types of events with probabilities $p_1,...,p_K$, then the probability of observing $y_1,...,y_K$ events of each type out of $n$ total triasl is:
+
+$$ Pr(y_1,...,y_K|n, \ p_1,...,p_K) = \frac{n!}{\prod_i y_i!} \prod_{i=1}^{K} p_i^{y_i} $$
+
+The fraction with $n!$ on top just expresses the number of different orderings that give the same counts $y_1,...,y_k$
+
+A model built on a multi-nomial distribution may also be called a **Categorical regression**, usually when each event is isolated on a single row, like with logistic regression. In machine learning, this model type is sometimes known as the maximum entropy classifier. Building a generalized linear model from a multi-nomial likelihood is complicated, because as the event types multiply, so too do your modeling choices. And there are two different approaches to constructing the likelihoods, as well. The first is based directly on the multi-nomial likelihood and uses a generalization of the logit link.The second approach transforms the multi-nomial likelihood into a series of Poisson likelihoods.
+
+#### Multinomial Categorization
+
+The link function in this context is the **Multi-nomail Logit** also known as the **Softmax** function. The link function takes a vector of scores, one for each of $K$ event types, and computes the probability of a particular type of event $k$ as:
+
+$$Pr(k|s_1,s_2,...,s_K) = \frac{\text{exp}(s_k)}{\sum^K_{i=1} \text{exp}(s_i)} $$
+
+Combined with the conventional link, this type of GLM may be called **Multi-nomial Logistic Regression**.
+
+The biggest issue is what to do with the multiple linear models. In a binomial GLM, you can pick either of the two possible events and build a single linear model for its log odds. The other event is handled automatically. But in a multinomial (or categorical) GLM, you need $K − 1$ linear models for $K$ types of events. One of the outcome values is chosen as a “pivot” and the others are modeled relative to it. In each the $K − 1$ linear models, you can use any predictors and parameters you like—they don’t have to be the same, and there are often good reasons for them to be different. In the special case of two types of events, none of these choices arise, because there is only one linear model. And that’s why the binomial GLM is so much easier.
+
+There are two basic cases: (1) predictors have different values for different values the outcome, and (2) parameters are distinct for each value of the outcome. The first case is useful when each type of event has its own quantitative traits, and you want to estimate the association between those traits and the probability each type of event appears in the data. The second case is useful when you are interested instead in features of some entity that produces each event, whatever type it turns out to be. Let’s consider each case separately and talk through an empirically motivated example of each. You can mix both cases in the same model. But it’ll be easier to grasp the distinction in pure examples of each.
+
+##### Predictors Matched to Outcomes
+
+For example, suppose you are modeling choice of career for a number of young adults. One of the relevant predictor variables is expected income. In that case, the same parameter $\beta_\text{income}$ appears in each linear model, in order to estimate the impact of the income trait on the probability a career is chosen. But a different income value multiplies the parameter in each linear model.
+
+```{r}
+library(rethinking)
+
+# simulate career choices among 500 individuals
+n      <- 500           # number of individuals
+income <- c(1, 2, 5)    # expected income of each career
+score  <- 0.5 * income  # scores for each career, based on income
+
+# next line converts scores to probabilities
+p <- softmax(score[1], score[2], score[3])
+
+# now simulate choice
+# outcome career holds event type values, not counts
+career <- rep(NA, n)  # empty vector of choices for each individual
+
+# sample chosen career for each individual
+set.seed(34302)
+# sample chosen career for each individual
+for(i in 1:n) career[i] <- sample(1:3, size = 1, prob = p)
+```
+
+```{r}
+code_careers_11.1 <- "
+data{
+  int N; // number of individuals
+  int K; // number of possible careers 
+  array[N] int career; // outcome
+  vector[K] career_income;
+}
+parameters{
+  vector[K - 1] a; // intercepts
+  real<lower=0> b; // association of income with choice
+}
+model{
+  vector[K] p;
+  vector[K] s;
+  a ~ normal(0, 1);
+  b ~ normal(0, 0.5);
+  s[1] = a[1] + b * career_income[1]; 
+  s[2] = a[2] + b * career_income[2]; 
+  s[3] = 0; // pivot
+  p = softmax(s);
+  career ~ categorical(p);
+} 
+"
+
+data_list <- list(N = n,
+                  K = 3, 
+                  career = career,
+                  career_income = income)
+
+# fit the model
+
+careers_11.1 <- stan(data = data_list,
+                     model_code = code_careers_11.1,
+                     chains = 4)
+
+precis(careers_11.1, depth = 2) %>% round(digits = 2)
+
+post_careers_11.1 <- extract.samples(careers_11.1)
+
+# set up logit scores
+s1      <- with(post_careers_11.1, a[, 1] + b * income[1])
+s2_orig <- with(post_careers_11.1, a[, 2] + b * income[2])
+s2_new  <- with(post_careers_11.1, a[, 2] + b * income[2] * 2)
+
+p_orig <- sapply(1:length(post_careers_11.1$b), function(i)
+  softmax(c(s1[i], s2_orig[i], 0)))
+
+p_new <- sapply(1:length(post_careers_11.1$b), function(i)
+  softmax(c(s1[i], s2_new[i], 0)))
+
+# summarize
+p_diff <- p_new[2, ] - p_orig[2, ] 
+precis(p_diff)
+
+hist(p_diff, br =30)
+
+```
+
+```{r}
+data.frame(s1 = score[3] + s1, 
+           s2 = score[3] + s2_orig, 
+           s3 = score[3] + 0) %>% 
+  pivot_longer(everything()) %>% 
+  group_by(name) %>% 
+  mean_qi(value) %>% 
+  mutate_if(is.double, round, digits = 2)
+```
+
+```{r}
+career_data <- 
+  tibble(career = career) %>% 
+  mutate(career_income = ifelse(career == 3, 5, career))
+
+
+get_prior(data = career_data,
+          family = categorical(link = logit, refcat = 3),
+          career ~ 1)
+
+careers_11.2 <-
+  brm(data = career_data, 
+      family = categorical(link = logit, refcat = 3),
+      career ~ 1,
+      prior = c(prior(normal(0, 1), class = Intercept, dpar = mu1),
+                prior(normal(0, 1), class = Intercept, dpar = mu2)),
+      iter = 2000, warmup = 1000, cores = 4, chains = 4, seed = 11,
+      file = "fits/careers_11.02.0", backend = "cmdstanr", silent = 2)
+
+
+careers_11.2
+
+tibble(income = c(1, 2, 5)) %>% 
+  mutate(score = 0.5 * income) %>% 
+  mutate(rescaled_score = score - 2.5) # note how our res-caled scores in reference to career 3 match our statstical models estimates of careers 1 and 2. Remember that the statistical model is built in reference to career 3.
+
+
+fitted(careers_11.2)[1, , ] %>% 
+  round(digits = 2) %>% 
+  t()
+```
+
+##### Predictors matched to observations
+
+Now consider an example in which each observed outcome has unique predictor values. Suppose you are still modeling career choice. But now you want to estimate the association between each person’s family income and which career they choose. So the predictor variable must have the same value in each linear model, for each row in the data. But now there is a unique parameter multiplying it in each linear model. This provides an estimate of the impact of family income on choice, for each type of career.
+
+```{r}
+n <- 500
+set.seed(11)
+
+#simulate family incomes for each individual
+family_income <- (runif(500))
+
+# unique coefficient for each type of event
+b <- c(-2, 0, 2)
+career <- rep(NA, n) # empty vector of choices for each individual
+
+
+for (i in 1:n){
+  score <- 0.5 * (1:3) + (b * family_income[i])
+  p     <- softmax(score[1], score[2], score[3])
+  career[i] <- sample(1:3, size = 1, prob = p)
+}
+
+```
+
+in effect we now have three data-generating equations
+
+$$ s_1 = 0.5 + ( -2 \cdot \text{family income}_i) $$
+
+$$ s_1 = 1 + ( 0 \cdot \text{family income}_i) $$
+
+$$ s_1 = 1.5 + ( 2 \cdot \text{family income}_i) $$
+
+where, because $\text{family income}$ is an actual variable that can take on unique values for each row in the data, we can call the first term in each equation the $\alpha$ parameter and the second term in each equation the $\beta$ parameter AND those $\beta$ parameters will be more than odd double intercepts.
+
+```{r}
+#| fig-width: 8
+#| fig-height: 4
+
+career_income <- tibble(career = as.factor(career),
+                        family_income = family_income) 
+
+p1 <- career_income %>% 
+  ggplot(aes(x = family_income, fill = career, color = career)) +
+  geom_density(linewidth = .4, alpha = .2) +
+  scale_fill_manual(values = c("maroon", "skyblue3", "goldenrod"))+
+  scale_color_manual(values = c("maroon4", "skyblue4", "goldenrod3"))+
+  theme_minimal()+
+  theme(legend.position = "none")+
+  labs(x = "Family Income", y = " ")
+
+p2 <- career_income %>% 
+  ggplot(aes(x = family_income, fill = career, color = career))+
+  geom_histogram(position = "fill", bins = 7, lwd = 1.3, alpha = .3) +
+  labs(y = "Proportion") +
+  scale_fill_manual(values = c("maroon", "skyblue3", "goldenrod"))+
+  scale_color_manual(values = c("maroon4", "skyblue4", "goldenrod4"))+
+  theme_minimal()+
+  labs(x = "Family Income", y = "Proportion") 
+
+p1 + p2
+```
+
+
+```{r}
+career_income_11.0 <- brm(
+  family = categorical(link = logit, refcat = 3),
+  data = career_income,
+  bf(career ~ 1,
+     nlf(mu1 ~ a1 + b1 * family_income),
+     nlf(mu2 ~ a2 + b2 * family_income),
+     a1 + a2 + b1 + b2 ~ 1),
+  prior = c(prior(normal(0, 1.5), class = b, nlpar = a1),
+            prior(normal(0, 1.5), class = b, nlpar = a2),
+            prior(normal(0, 1), class = b, nlpar = b1),
+            prior(normal(0, 1), class = b, nlpar = b2)),
+  iter = 2000, warmup = 1000, cores = 4, chains = 4, seed = 11,
+  file = "fits/career_income_11.00.0", backend = "cmdstanr", silent = 2
+)
+
+career_income_11.0 <- add_criterion(career_income_11.0, "loo")
+#loo(career_income_11.0)
+```
+
+
+```{r}
+#| fig-width: 9
+#| fig-height: 4
+newData <- tibble(family_income = seq(from = 0, to = 1, length.out = 60))
+
+fit_11.0 <- as_tibble(fitted(career_income_11.0, newdata = newData))
+
+
+#c(`Estimate.P(Y = 1)`, `Estimate.P(Y = 2)`, `Estimate.P(Y = 3)`)) %>% 
+
+clean_11.0 <- fit_11.0 %>% 
+  dplyr::select(-c(`Est.Error.P(Y = 1)`, `Est.Error.P(Y = 2)`, `Est.Error.P(Y = 3)`)) %>% 
+  cbind(newData) %>% 
+  pivot_longer(cols = -c(family_income),
+               names_to = c(".value", "Career"),
+               values_to = "Estimate",
+               names_pattern = "^(Estimate|Q2\\.5|Q97\\.5)\\.P\\(Y = (\\d)\\)$") 
+
+
+p1 <- clean_11.0 %>% 
+  ggplot(aes(x = family_income, color = Career, fill = Career))+
+  geom_line(aes(y = Estimate), lwd = 1)+
+  geom_ribbon(aes(ymin = Q2.5, ymax = Q97.5), alpha = .3, lwd = .4, linetype = "dashed")+
+  scale_fill_manual(values  = c("maroon", "skyblue3", "goldenrod"))+
+  scale_color_manual(values = c("maroon4", "skyblue4", "goldenrod4"))+
+  theme_minimal()+
+  theme(legend.position = "none")+
+  labs(x = "Family Income Level", y = "Proportion with Career")
+  
+
+
+p2 <- clean_11.0 %>% 
+  ggplot(aes(x = family_income, y = Estimate, fill = Career, color = Career))+
+  geom_area(position = "fill", alpha = .3) +
+  labs(y = "Proportion") +
+  scale_fill_manual(values = c("maroon", "skyblue3", "goldenrod"))+
+  scale_color_manual(values = c("maroon4", "skyblue4", "goldenrod4"))+
+  theme_minimal()+
+  labs(x = "Family Income", y = "Proportion") 
+
+p1 + p2
+
+```
+
+### Multinomial Poisson
+
+Another way to fit a multinomial/categorical model is to refactor it into a series of Poisson likelihoods. That should sound a bit crazy. But it’s actually both principled and commonplace to model multinomial outcomes this way. It’s principled, because the mathematics justifies it. And it’s commonplace, because it is usually computationally easier to use Poisson rather than multinomial likelihoods. (pg 371)
+
+We're going to use the UC Berkely admissions data again.
+
+```{r}
+#| fig-width: 8
+#| fig-height: 3
+
+
+admit_binom_11.1 <- brm(
+  data = admit,
+  family = binomial,
+  admit | trials(applications) ~ 1,
+  prior(normal(0, 1.5), class = Intercept),
+  iter = 2000, warmup = 1000, cores = 4, chains = 4, 
+  seed = 11, file = "fits/admit.binom.01.1", backend = "cmdstanr", silent = 2
+)
+
+admit_pois_11.1 <- brm(
+  data = admit %>%
+        mutate(rej = reject),  # 'reject' is a reserved word
+  family = poisson,
+  mvbind(admit, rej) ~ 1,
+  prior(normal(0, 1.5), class = Intercept),
+  iter = 2000, warmup = 1000, cores = 4, chains = 4, 
+  seed = 11, file = "fits/admit.pois.01.1", backend = "cmdstanr", silent = 2
+)
+
+
+admit_models <- tibble(binomial = inv_logit(as_draws_df(admit_binom_11.1)$Intercept), 
+       lambda_accept = exp(as_draws_df(admit_pois_11.1)$b_admit_Intercept),
+       lambda_reject = 
+exp(as_draws_df(admit_pois_11.1)$b_rej_Intercept)) %>% 
+  mutate(poisson = lambda_accept/(lambda_accept + lambda_reject)) 
+
+admit_models_long <- admit_models%>% 
+  dplyr::select(-c(lambda_accept, lambda_reject)) %>% 
+  pivot_longer(cols = everything(),
+               names_to = "model",
+               values_to = "probability of acceptance")
+
+admit_models %>% 
+  dplyr::select(c(lambda_accept, lambda_reject)) %>% 
+  rename("accept" = lambda_accept, 
+         "reject" = lambda_reject) %>% 
+  pivot_longer(cols = everything(),
+               names_to = "lambda",
+               values_to = "values") %>% 
+ggplot(aes(x = `values`, y = reorder(lambda, values)))+
+ stat_halfeye(point_interval = median_qi, .width = .95,
+               fill = "firebrick4") +
+  theme_minimal()+
+  labs(x = "Number of Students",
+       y = "",
+       title = "Mean Accept/Reject Rates")
+
+
+
+
+
+```
+
+We can use this model of counts to get probabilities quite simply:
+
+$$P(\text{Accept}) =  \frac{\lambda_\text{accept}}{\lambda_\text{accept} + \lambda_\text{reject}} $$
+
+
+We can compare our poisson model of the acceptance probability to that of our binomial model.
+
+```{r}
+ggplot(data = admit_models_long, aes(x = `probability of acceptance`, y = reorder(model, `probability of acceptance`))) + 
+    stat_halfeye(point_interval = median_qi, .width = .95,
+               fill = "firebrick4") +
+  theme_minimal()+
+  labs(y = "", title = "Difference models estimate of the probability of acceptance")
+```
+
+Happily both models give the exact same answer!
+
+
+### Continuous Survival and Censoring
+
+Sometimes the right way to model discrete, countable events is to model not the counts themselves but rather the time between events.
+
+Suppose for example we are interested in the rate at which cats are adopted from an animal shelter. The cat can only be adopted once, at least until it is given up for adoption again. How long it waits for adoption gives us information about the rate of adoptions.
+
+Models for dealing with these data are called survival models. Survival models are models for countable things, but the outcomes we want to predict are durations. Durations are continuous deviations from some point of reference.
+
+Let's model 
+
+```{r}
+#| fig-width: 8
+#| fig-height: 3
+
+cats <- cats %>% 
+  mutate(black = ifelse(color == "Black", "black", "other"),
+         adopted  = ifelse(out_event == "Adoption", 1, 0),
+         censored = ifelse(out_event != "Adoption", 1, 0))
+
+
+cats_11.1 <- brm(data = cats,
+      family = exponential,
+      days_to_event | cens(censored) ~ 0 + black,
+      prior(normal(0, 1), class = b),
+      iter = 2000, warmup = 1000, cores = 4, chains = 4,
+      seed = 11, file = "fits/cats.01.1", backend = "cmdstanr", silent = 2)
+
+cats_draws <- as_draws_df(cats_11.1) %>% 
+  mutate(black = 1/exp(b_blackblack),
+         other = 1/exp(b_blackother),
+         black_ppd = rexp(n(), rate = black),
+         other_ppd = rexp(n(), rate = other)) %>% 
+  dplyr::select(c(black, other, black_ppd, other_ppd))
+
+cats_draws %>% 
+  dplyr::select(c(black, other)) %>% 
+  pivot_longer(cols = everything(),
+               names_to = "color",
+               values_to = "lambda") %>% 
+  ggplot(aes(x = 1/`lambda`, y = reorder(`color`, `lambda`)))+
+ stat_halfeye(point_interval = median_qi, .width = .95,
+               fill = "firebrick4") +
+  theme_minimal()+
+  labs(x = "Average Number of Days Until Adoption", y = "Color of Cat", title = "Effect of cats color on the average number of days until adoption")
+
+
+# cats_draws %>% 
+#   dplyr::select(c(black_ppd, other_ppd)) %>% 
+#   pivot_longer(cols = everything(),
+#                names_to = "color",
+#                values_to = "ppd") %>% 
+#   ggplot(aes(x = `ppd`, y = reorder(`color`, `ppd`)))+
+#  stat_halfeye(point_interval = median_qi, .width = .95,
+#                fill = "firebrick4") +
+#   theme_minimal()+
+#   labs(x = "Number of Days Until Adoption", y = "Color of Cat", title = "Effect of cats color on the number of days until adoption")
+```
+
+```{r}
+#| fig-width: 8
+#| fig-height: 4
+
+
+cats_draws %>% 
+  slice_sample(n = 500) %>% 
+  mutate(draw_id = row_number()) %>% 
+  slice(rep(1:n(), each = 51)) %>%
+  group_by(across(everything())) %>%
+  mutate(days = seq(0, 100, by = 2)) %>%
+  ungroup() %>% 
+  mutate(surv_black = 1 - pexp(days, rate = black),
+         surv_other = 1 - pexp(days, rate = other)) %>% 
+  dplyr::select(c(draw_id, days, surv_black, surv_other)) %>% 
+  pivot_longer(cols = c(surv_black, surv_other),
+               names_to = "color",
+               values_to = "survival") %>% 
+  ggplot(aes(x = days, y = survival, group = interaction(draw_id, color), color = color)) + 
+  geom_line(alpha = .05) +
+  scale_color_manual(
+    name = "Cat Type",
+    values = c("grey50", "goldenrod"),
+    labels = c("black cats", "other cats")
+  ) +
+  theme_minimal()+
+  guides(color = guide_legend(override.aes = list(alpha = 1)))+
+  labs(x = "Days since arrival", y = "% remaining", title = "Adoption Rate of Cats")
+  
+
+```
+
